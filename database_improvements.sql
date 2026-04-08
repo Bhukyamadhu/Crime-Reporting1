@@ -82,3 +82,21 @@ SELECT 'admin', 'System Admin', 'admin@crime.local', '$2y$10$jD.BOYxBMZwm394nafw
 WHERE NOT EXISTS (
     SELECT 1 FROM admins WHERE username = 'admin'
 );
+
+-- Chat and richer notifications upgrades
+ALTER TABLE notifications
+    ADD COLUMN IF NOT EXISTS type VARCHAR(30) NOT NULL DEFAULT 'update' AFTER message;
+
+CREATE TABLE IF NOT EXISTS messages (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    complaint_id INT UNSIGNED NOT NULL,
+    sender_id INT NOT NULL,
+    receiver_id INT NOT NULL,
+    message_text TEXT NOT NULL,
+    attachment VARCHAR(255) NULL,
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_seen TINYINT(1) NOT NULL DEFAULT 0,
+    INDEX idx_messages_complaint (complaint_id),
+    INDEX idx_messages_seen (is_seen),
+    INDEX idx_messages_sent (sent_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

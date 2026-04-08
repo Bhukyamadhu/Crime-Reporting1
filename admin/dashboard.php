@@ -90,7 +90,7 @@ foreach ($markers as $m) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="<?php echo h(translation_get_html_lang()); ?>">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -104,7 +104,6 @@ foreach ($markers as $m) {
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
     <link rel="stylesheet" href="../assets/css/app.css">
-    <link rel="stylesheet" href="../assets/translation.css">
     <style>
         #allComplaintsMap { height: 500px; }
     </style>
@@ -115,61 +114,58 @@ foreach ($markers as $m) {
         <div class="d-flex align-items-center gap-3 mb-4">
             <span class="navbar-brand-mark"><i class="fa-solid fa-shield-halved"></i></span>
             <div>
-                <div class="fw-semibold" data-i18n="Admin Control">Admin Control</div>
-                <div class="small text-white-50" data-i18n="Incident management system">Incident management system</div>
+                <div class="fw-semibold">Admin Control</div>
+                <div class="small text-white-50">Incident management system</div>
             </div>
         </div>
         <div class="surface-card p-3 mb-4 text-dark">
-            <div class="small text-uppercase fw-semibold text-primary mb-2" data-i18n="Overview">Overview</div>
-            <h4 class="mb-1"><?php echo (int)$counts["total"]; ?> <span data-i18n="Complaints">Complaints</span></h4>
-            <div class="muted" data-i18n="Active monitoring across the platform">Active monitoring across the platform</div>
+            <div class="small text-uppercase fw-semibold text-primary mb-2">Overview</div>
+            <h4 class="mb-1"><?php echo (int)$counts["total"]; ?> Complaints</h4>
+            <div class="muted">Active monitoring across the platform</div>
         </div>
         <nav class="nav flex-column mb-4">
-            <a class="nav-link active" href="dashboard.php" data-i18n="Dashboard"><i class="fa-solid fa-chart-line me-2"></i>Dashboard</a>
-            <a class="nav-link" href="complaints.php" data-i18n="Manage Complaints"><i class="fa-solid fa-table-list me-2"></i>Manage Complaints</a>
-            <a class="nav-link" href="../public_stats.php" data-i18n="Public Statistics"><i class="fa-solid fa-chart-pie me-2"></i>Public Statistics</a>
-            <a class="nav-link" href="../index.php" data-i18n="Public Portal"><i class="fa-solid fa-house me-2"></i>Public Portal</a>
-            <a class="nav-link" href="logout.php" data-i18n="Logout"><i class="fa-solid fa-right-from-bracket me-2"></i>Logout</a>
+            <a class="nav-link active" href="dashboard.php"><i class="fa-solid fa-chart-line me-2"></i>Dashboard</a>
+            <a class="nav-link" href="complaints.php"><i class="fa-solid fa-table-list me-2"></i>Manage Complaints</a>
+            <a class="nav-link" href="../public_stats.php"><i class="fa-solid fa-chart-pie me-2"></i>Public Statistics</a>
+            <a class="nav-link" href="../index.php"><i class="fa-solid fa-house me-2"></i>Public Portal</a>
+            <a class="nav-link" href="logout.php"><i class="fa-solid fa-right-from-bracket me-2"></i>Logout</a>
         </nav>
         <div class="surface-card p-3 text-dark">
-            <div class="small text-uppercase fw-semibold text-primary mb-2" data-i18n="Response Mix">Response Mix</div>
-            <div class="d-flex justify-content-between mb-2"><span data-i18n="Pending">Pending</span><strong><?php echo (int)$counts["pending"]; ?></strong></div>
-            <div class="d-flex justify-content-between mb-2"><span data-i18n="Investigating">Investigating</span><strong><?php echo (int)$counts["investigating"]; ?></strong></div>
-            <div class="d-flex justify-content-between"><span data-i18n="Resolved">Resolved</span><strong><?php echo (int)$counts["resolved"]; ?></strong></div>
+            <div class="small text-uppercase fw-semibold text-primary mb-2">Response Mix</div>
+            <div class="d-flex justify-content-between mb-2"><span>Pending</span><strong><?php echo (int)$counts["pending"]; ?></strong></div>
+            <div class="d-flex justify-content-between mb-2"><span>Investigating</span><strong><?php echo (int)$counts["investigating"]; ?></strong></div>
+            <div class="d-flex justify-content-between"><span>Resolved</span><strong><?php echo (int)$counts["resolved"]; ?></strong></div>
         </div>
     </aside>
 
     <main class="admin-main">
         <div class="page-topbar">
             <div class="page-breadcrumb">
-                <a href="../index.php" data-i18n="Home">Home</a>
+                <a href="../index.php">Home</a>
                 <i class="fa-solid fa-chevron-right small"></i>
-                <span class="current" data-i18n="Admin Dashboard">Admin Dashboard</span>
+                <span class="current">Admin Dashboard</span>
             </div>
             <div class="page-toolbar">
                 <div class="nav-shortcuts">
-                    <a class="shortcut-pill" href="complaints.php" data-i18n="Manage Complaints"><i class="fa-solid fa-list-check"></i>Manage Complaints</a>
-                    <a class="shortcut-pill" href="../public_stats.php" data-i18n="Statistics"><i class="fa-solid fa-chart-column"></i>Statistics</a>
-                    <a class="shortcut-pill" href="logout.php" data-i18n="Logout"><i class="fa-solid fa-right-from-bracket"></i>Logout</a>
+                    <a class="shortcut-pill" href="complaints.php"><i class="fa-solid fa-list-check"></i>Manage Complaints</a>
+                    <a class="shortcut-pill" href="../public_stats.php"><i class="fa-solid fa-chart-column"></i>Statistics</a>
+                    <a class="shortcut-pill" href="logout.php"><i class="fa-solid fa-right-from-bracket"></i>Logout</a>
                 </div>
-                <div class="d-flex align-items-center gap-3 flex-wrap">
-                    <?php translation_render_language_selector("../"); ?>
-                    <div class="small muted">Logged in as <?php echo h($_SESSION["admin_name"] ?? "Admin"); ?></div>
-                </div>
+                <div class="small muted">Logged in as <?php echo h($_SESSION["admin_name"] ?? "Admin"); ?></div>
             </div>
         </div>
 
         <section class="surface-card p-4 p-lg-5 mb-4">
             <div class="row align-items-center g-4">
                 <div class="col-lg-8">
-                    <p class="text-uppercase small fw-semibold text-primary mb-2" data-i18n="Administrator Workspace">Administrator Workspace</p>
-                    <h1 class="section-title mb-2" data-i18n="Operational dashboard for complaint monitoring">Operational dashboard for complaint monitoring</h1>
-                    <p class="section-copy mb-0" data-i18n="Review case volume, monitor investigation flow, inspect reporting hotspots, and use charts and maps to understand activity across the system.">Review case volume, monitor investigation flow, inspect reporting hotspots, and use charts and maps to understand activity across the system.</p>
+                    <p class="text-uppercase small fw-semibold text-primary mb-2">Administrator Workspace</p>
+                    <h1 class="section-title mb-2">Operational dashboard for complaint monitoring</h1>
+                    <p class="section-copy mb-0">Review case volume, monitor investigation flow, inspect reporting hotspots, and use charts and maps to understand activity across the system.</p>
                 </div>
                 <div class="col-lg-4">
                     <div class="d-grid gap-3">
-                        <a class="btn btn-primary" href="complaints.php" data-i18n="Manage Complaints"><i class="fa-solid fa-list-check me-2"></i>Manage Complaints</a>
-                        <a class="btn btn-outline-primary" href="../public_stats.php" data-i18n="View Public Dashboard"><i class="fa-solid fa-chart-column me-2"></i>View Public Dashboard</a>
+                        <a class="btn btn-primary" href="complaints.php"><i class="fa-solid fa-list-check me-2"></i>Manage Complaints</a>
+                        <a class="btn btn-outline-primary" href="../public_stats.php"><i class="fa-solid fa-chart-column me-2"></i>View Public Dashboard</a>
                     </div>
                 </div>
             </div>
@@ -327,8 +323,6 @@ foreach ($markers as $m) {
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
 <script src="../assets/js/app.js"></script>
-<?php translation_render_page_config("../"); ?>
-<script src="../assets/translation.js"></script>
 <script>
 const markers = <?php echo json_encode($markers, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
 const crimeDist = <?php echo json_encode($crime_dist, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;

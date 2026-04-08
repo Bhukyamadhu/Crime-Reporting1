@@ -64,7 +64,7 @@ for ($i = 11; $i >= 0; $i--) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="<?php echo h(translation_get_html_lang()); ?>">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -75,7 +75,6 @@ for ($i = 11; $i >= 0; $i--) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="assets/css/app.css">
-    <link rel="stylesheet" href="assets/translation.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -84,8 +83,8 @@ for ($i = 11; $i >= 0; $i--) {
         <a class="navbar-brand d-flex align-items-center gap-3 fw-semibold" href="index.php">
             <span class="navbar-brand-mark"><i class="fa-solid fa-shield-halved"></i></span>
             <span class="navbar-brand-text">
-                <span data-i18n="Crime Reporting System">Crime Reporting System</span>
-                <small data-i18n="Public statistics dashboard">Public statistics dashboard</small>
+                Crime Reporting System
+                <small>Public statistics dashboard</small>
             </span>
         </a>
         <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#statsNav" aria-controls="statsNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -93,13 +92,12 @@ for ($i = 11; $i >= 0; $i--) {
         </button>
         <div class="collapse navbar-collapse" id="statsNav">
             <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-1 me-lg-3">
-                <li class="nav-item"><a class="nav-link app-nav-link" href="index.php" data-i18n="Home">Home</a></li>
-                <li class="nav-item"><a class="nav-link app-nav-link" href="user/report.php" data-i18n="Report Crime">Report Crime</a></li>
-                <li class="nav-item"><a class="nav-link app-nav-link" href="user/dashboard.php" data-i18n="Track Complaint">Track Complaint</a></li>
-                <li class="nav-item"><a class="nav-link app-nav-link active" href="public_stats.php" data-i18n="Dashboard">Dashboard</a></li>
-                <li class="nav-item"><a class="nav-link app-nav-link" href="user/login.php" data-i18n="Login">Login</a></li>
+                <li class="nav-item"><a class="nav-link app-nav-link" href="index.php">Home</a></li>
+                <li class="nav-item"><a class="nav-link app-nav-link" href="user/report.php">Report Crime</a></li>
+                <li class="nav-item"><a class="nav-link app-nav-link" href="user/dashboard.php">Track Complaint</a></li>
+                <li class="nav-item"><a class="nav-link app-nav-link active" href="public_stats.php">Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link app-nav-link" href="user/login.php">Login</a></li>
             </ul>
-            <?php translation_render_language_selector(); ?>
         </div>
     </div>
 </nav>
@@ -108,14 +106,14 @@ for ($i = 11; $i >= 0; $i--) {
     <section class="surface-card p-4 p-lg-5 mb-4">
         <div class="row align-items-center g-4">
             <div class="col-lg-8">
-                <p class="text-uppercase small fw-semibold text-primary mb-2" data-i18n="Open Data Snapshot">Open Data Snapshot</p>
-                <h1 class="section-title mb-2" data-i18n="Public crime statistics and service trends">Public crime statistics and service trends</h1>
-                <p class="section-copy mb-0" data-i18n="This dashboard presents complaint totals, status flow, crime type distribution, and monthly reporting trends in a modern public-facing analytics view.">This dashboard presents complaint totals, status flow, crime type distribution, and monthly reporting trends in a modern public-facing analytics view.</p>
+                <p class="text-uppercase small fw-semibold text-primary mb-2">Open Data Snapshot</p>
+                <h1 class="section-title mb-2">Public crime statistics and service trends</h1>
+                <p class="section-copy mb-0">This dashboard presents complaint totals, status flow, crime type distribution, and monthly reporting trends in a modern public-facing analytics view.</p>
             </div>
             <div class="col-lg-4">
                 <div class="d-grid gap-3">
-                    <a href="user/report.php" class="btn btn-primary" data-i18n="Report Crime"><i class="fa-solid fa-file-circle-plus me-2"></i>Report Crime</a>
-                    <a href="index.php" class="btn btn-outline-primary" data-i18n="Back to Home"><i class="fa-solid fa-arrow-left me-2"></i>Back to Home</a>
+                    <a href="user/report.php" class="btn btn-primary"><i class="fa-solid fa-file-circle-plus me-2"></i>Report Crime</a>
+                    <a href="index.php" class="btn btn-outline-primary"><i class="fa-solid fa-arrow-left me-2"></i>Back to Home</a>
                 </div>
             </div>
         </div>
@@ -123,24 +121,24 @@ for ($i = 11; $i >= 0; $i--) {
 
     <section class="stats-grid mb-4">
         <div class="metric-card card-hover">
-            <div class="metric-label" data-i18n="Total Complaints">Total Complaints</div>
+            <div class="metric-label">Total Complaints</div>
             <div class="metric-value"><?php echo (int)$summary["total"]; ?></div>
-            <div class="metric-trend" data-i18n="All public complaints received">All public complaints received</div>
+            <div class="metric-trend">All public complaints received</div>
         </div>
         <div class="metric-card card-hover">
-            <div class="metric-label" data-i18n="Pending">Pending</div>
+            <div class="metric-label">Pending</div>
             <div class="metric-value"><?php echo (int)$summary["pending"]; ?></div>
-            <div class="metric-trend" data-i18n="Awaiting initial action">Awaiting initial action</div>
+            <div class="metric-trend">Awaiting initial action</div>
         </div>
         <div class="metric-card card-hover">
-            <div class="metric-label" data-i18n="Under Investigation">Under Investigation</div>
+            <div class="metric-label">Under Investigation</div>
             <div class="metric-value"><?php echo (int)$summary["investigating"]; ?></div>
-            <div class="metric-trend" data-i18n="Active operational review">Active operational review</div>
+            <div class="metric-trend">Active operational review</div>
         </div>
         <div class="metric-card card-hover">
-            <div class="metric-label" data-i18n="Resolved">Resolved</div>
+            <div class="metric-label">Resolved</div>
             <div class="metric-value"><?php echo (int)$summary["resolved"]; ?></div>
-            <div class="metric-trend" data-i18n="Closed or completed complaints">Closed or completed complaints</div>
+            <div class="metric-trend">Closed or completed complaints</div>
         </div>
     </section>
 
@@ -186,8 +184,6 @@ for ($i = 11; $i >= 0; $i--) {
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="assets/js/app.js"></script>
-<?php translation_render_page_config(); ?>
-<script src="assets/translation.js"></script>
 <script>
 const publicCrimeData = <?php echo json_encode($crime_dist, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
 const monthlyLabels = <?php echo json_encode($month_labels, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;

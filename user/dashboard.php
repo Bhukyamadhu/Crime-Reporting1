@@ -5,65 +5,31 @@ security_require_user("login.php");
 
 $user_id = (int)$_SESSION["user_id"];
 $flash = get_flash_message();
-
+$has_address = db_has_column($conn, "complaints", "address");
 $user_stmt = mysqli_prepare($conn, "SELECT id, name, email, phone FROM users WHERE id=? LIMIT 1");
 mysqli_stmt_bind_param($user_stmt, "i", $user_id);
 mysqli_stmt_execute($user_stmt);
 $user_result = mysqli_stmt_get_result($user_stmt);
 $user = $user_result ? mysqli_fetch_assoc($user_result) : null;
+if (!$user) { session_unset(); session_destroy(); security_start_session(); set_flash_message("warning", "Your account session could not be validated. Please log in again."); header("Location: login.php"); exit(); }
 
-if (!$user) {
-    session_unset();
-    session_destroy();
-    security_start_session();
-    set_flash_message("warning", "Your account session could not be validated. Please log in again.");
-    header("Location: login.php");
-    exit();
-}
-
-$has_address = db_has_column($conn, "complaints", "address");
 $address_select = $has_address ? "address" : "NULL AS address";
-$complaints_stmt = mysqli_prepare(
-    $conn,
-    "SELECT id, crime_type, description, {$address_select}, evidence, status, created_at
-     FROM complaints
-     WHERE user_id=?
-     ORDER BY created_at DESC"
-);
-mysqli_stmt_bind_param($complaints_stmt, "i", $user_id);
-mysqli_stmt_execute($complaints_stmt);
-$complaints_result = mysqli_stmt_get_result($complaints_stmt);
-
+$stmt = mysqli_prepare($conn, "SELECT id, crime_type, description, {$address_select}, evidence, status, created_at FROM complaints WHERE user_id=? ORDER BY created_at DESC");
+mysqli_stmt_bind_param($stmt, "i", $user_id);
+mysqli_stmt_execute($stmt);
+$result = mysqli_stmt_get_result($stmt);
 $complaints = [];
 $stats = ["total" => 0, "pending" => 0, "investigating" => 0, "resolved" => 0];
-while ($complaints_result && $row = mysqli_fetch_assoc($complaints_result)) {
-    $complaints[] = $row;
-    $stats["total"]++;
-    if ($row["status"] === "Pending") {
-        $stats["pending"]++;
-    } elseif ($row["status"] === "Under Investigation" || $row["status"] === "Investigating") {
-        $stats["investigating"]++;
-    } elseif ($row["status"] === "Resolved") {
-        $stats["resolved"]++;
-    }
-}
+while ($result && $row = mysqli_fetch_assoc($result)) { $complaints[] = $row; $stats["total"]++; if ($row["status"] === "Pending") $stats["pending"]++; elseif ($row["status"] === "Under Investigation" || $row["status"] === "Investigating") $stats["investigating"]++; elseif ($row["status"] === "Resolved") $stats["resolved"]++; }
 
 $notifications = [];
+$unread_count = 0;
 if (db_table_exists($conn, "notifications")) {
-    $notif_stmt = mysqli_prepare(
-        $conn,
-        "SELECT message, created_at
-         FROM notifications
-         WHERE user_id=?
-         ORDER BY created_at DESC
-         LIMIT 8"
-    );
+    $notif_stmt = mysqli_prepare($conn, "SELECT id, complaint_id, message, type, is_read, created_at FROM notifications WHERE user_id=? ORDER BY created_at DESC LIMIT 12");
     mysqli_stmt_bind_param($notif_stmt, "i", $user_id);
     mysqli_stmt_execute($notif_stmt);
     $notif_result = mysqli_stmt_get_result($notif_stmt);
-    while ($notif_result && $n = mysqli_fetch_assoc($notif_result)) {
-        $notifications[] = $n;
-    }
+    while ($notif_result && $n = mysqli_fetch_assoc($notif_result)) { $notifications[] = $n; if ((int)$n["is_read"] === 0) $unread_count++; }
 }
 
 function complaint_status_class($status) {
@@ -73,20 +39,17 @@ function complaint_status_class($status) {
     return "status-secondary";
 }
 
-function crime_icon($type) {
-    $map = [
-        "Theft" => "fa-solid fa-mask-face",
-        "Assault" => "fa-solid fa-hand-fist",
-        "Accident" => "fa-solid fa-car-burst",
-        "Cyber Crime" => "fa-solid fa-laptop-code",
-        "Vandalism" => "fa-solid fa-hammer",
-        "Other" => "fa-solid fa-shield-halved"
-    ];
-    return $map[$type] ?? "fa-solid fa-shield-halved";
+function notification_href($n) {
+    $cid = (int)($n["complaint_id"] ?? 0);
+    $type = $n["type"] ?? "update";
+    if ($cid <= 0) return "#";
+    if ($type === "chat") return "chat.php?complaint_id=" . $cid;
+    if ($type === "update") return "report.php?complaint_id=" . $cid;
+    return "../track.php?complaint_id=" . $cid;
 }
 ?>
 <!DOCTYPE html>
-<html lang="<?php echo h(translation_get_html_lang()); ?>">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -97,239 +60,23 @@ function crime_icon($type) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="../assets/css/app.css">
-    <link rel="stylesheet" href="../assets/translation.css">
     <link rel="stylesheet" href="../chatbot/chatbot.css">
 </head>
 <body>
-<nav class="navbar navbar-expand-lg glass-nav">
-    <div class="container py-2">
-        <a class="navbar-brand d-flex align-items-center gap-3 fw-semibold" href="../index.php">
-            <span class="navbar-brand-mark"><i class="fa-solid fa-shield-halved"></i></span>
-            <span class="navbar-brand-text">
-                <span data-i18n="Crime Reporting System">Crime Reporting System</span>
-                <small data-i18n="Citizen service dashboard">Citizen service dashboard</small>
-            </span>
-        </a>
-        <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#userNav" aria-controls="userNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="userNav">
-            <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-1 me-lg-3">
-                <li class="nav-item"><a class="nav-link app-nav-link" href="../index.php" data-i18n="Home">Home</a></li>
-                <li class="nav-item"><a class="nav-link app-nav-link" href="report.php" data-i18n="Report Crime">Report Crime</a></li>
-                <li class="nav-item"><a class="nav-link app-nav-link active" href="dashboard.php" data-i18n="Dashboard">Dashboard</a></li>
-                <li class="nav-item"><a class="nav-link app-nav-link" href="#complaint-history" data-i18n="Track Complaint">Track Complaint</a></li>
-                <li class="nav-item"><a class="nav-link app-nav-link" href="../public_stats.php" data-i18n="Statistics">Statistics</a></li>
-                <li class="nav-item"><a class="nav-link app-nav-link" href="logout.php" data-i18n="Logout">Logout</a></li>
-            </ul>
-            <div class="d-grid d-lg-flex gap-2">
-                <?php translation_render_language_selector("../"); ?>
-                <a href="report.php" class="btn btn-primary" data-i18n="New Report">New Report</a>
-            </div>
-        </div>
-    </div>
-</nav>
-
+<nav class="navbar navbar-expand-lg glass-nav"><div class="container py-2"><a class="navbar-brand d-flex align-items-center gap-3 fw-semibold" href="../index.php"><span class="navbar-brand-mark"><i class="fa-solid fa-shield-halved"></i></span><span class="navbar-brand-text">Crime Reporting System<small>Citizen service dashboard</small></span></a><button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#userNav"><span class="navbar-toggler-icon"></span></button><div class="collapse navbar-collapse" id="userNav"><ul class="navbar-nav ms-auto align-items-lg-center gap-lg-1 me-lg-3"><li class="nav-item"><a class="nav-link app-nav-link" href="../index.php">Home</a></li><li class="nav-item"><a class="nav-link app-nav-link" href="report.php">Report Crime</a></li><li class="nav-item"><a class="nav-link app-nav-link active" href="dashboard.php">Dashboard</a></li><li class="nav-item"><a class="nav-link app-nav-link" href="../track.php">Track Complaint</a></li><li class="nav-item"><a class="nav-link app-nav-link" href="../public_stats.php">Statistics</a></li><li class="nav-item"><a class="nav-link app-nav-link" href="logout.php">Logout</a></li></ul><div class="dropdown"><button class="btn btn-outline-primary position-relative" type="button" data-bs-toggle="dropdown" id="notificationBell"><i class="fa-regular fa-bell"></i><span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="notificationCount" <?php echo $unread_count > 0 ? "" : "hidden"; ?>><?php echo (int)$unread_count; ?></span></button><div class="dropdown-menu dropdown-menu-end p-0 overflow-hidden" style="width:min(380px, 92vw);"><div class="p-3 border-bottom d-flex justify-content-between align-items-center"><strong>Notifications</strong><button class="btn btn-sm btn-link text-decoration-none" type="button" id="markAllRead">Mark all read</button></div><div class="list-group list-group-flush" id="notificationList"><?php if ($notifications) { foreach ($notifications as $n) { ?><a class="list-group-item list-group-item-action <?php echo ((int)$n["is_read"] === 0) ? "bg-light" : ""; ?>" href="<?php echo h(notification_href($n)); ?>" data-notification-id="<?php echo (int)$n["id"]; ?>"><div class="fw-semibold small"><?php echo h($n["message"]); ?></div><div class="small text-muted"><?php echo h($n["created_at"]); ?></div></a><?php }} else { ?><div class="p-3 text-muted small">No notifications yet.</div><?php } ?></div></div></div></div></div></nav>
 <main class="container py-4 py-lg-5">
-    <div class="page-topbar">
-        <div class="page-breadcrumb">
-                <a href="../index.php" data-i18n="Home">Home</a>
-                <i class="fa-solid fa-chevron-right small"></i>
-                <span class="current" data-i18n="Dashboard">Dashboard</span>
-        </div>
-        <div class="page-toolbar">
-            <div class="nav-shortcuts">
-                <a class="shortcut-pill" href="report.php"><i class="fa-solid fa-file-circle-plus"></i>Report Crime</a>
-                <a class="shortcut-pill" href="#complaint-history"><i class="fa-solid fa-list-check"></i>Track Complaint</a>
-                <a class="shortcut-pill" href="../public_stats.php"><i class="fa-solid fa-chart-column"></i>Statistics</a>
-            </div>
-        </div>
-    </div>
-
-    <?php if ($flash) { ?>
-        <div class="alert alert-<?php echo h($flash["type"]); ?> mb-4"><?php echo h($flash["text"]); ?></div>
-    <?php } ?>
-
-    <section class="surface-card p-4 p-lg-5 mb-4">
-        <div class="row align-items-center g-4">
-            <div class="col-lg-8">
-                <p class="text-uppercase small fw-semibold text-primary mb-2" data-i18n="Citizen Dashboard">Citizen Dashboard</p>
-                <h1 class="section-title mb-2">Welcome, <?php echo h($user["name"]); ?></h1>
-                <p class="section-copy mb-0" data-i18n="Monitor your complaints, review evidence submissions, and use the shortcuts below to move quickly between reporting, tracking, and public statistics.">Monitor your complaints, review evidence submissions, and use the shortcuts below to move quickly between reporting, tracking, and public statistics.</p>
-            </div>
-            <div class="col-lg-4">
-                <div class="surface-card p-4 h-100">
-                    <div class="d-flex align-items-center gap-3 mb-3">
-                        <span class="feature-card-icon"><i class="fa-solid fa-user-shield"></i></span>
-                        <div>
-                            <h5 class="mb-0"><?php echo h($user["name"]); ?></h5>
-                            <p class="muted mb-0">Verified account holder</p>
-                        </div>
-                    </div>
-                    <div class="small">
-                        <div class="mb-2"><strong>Email:</strong> <?php echo h($user["email"]); ?></div>
-                        <div><strong>Phone:</strong> <?php echo h($user["phone"]); ?></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section class="stats-grid mb-4">
-        <div class="metric-card card-hover">
-            <div class="d-flex justify-content-between align-items-start">
-                <div>
-                    <div class="metric-label">Total Complaints</div>
-                    <div class="metric-value"><?php echo (int)$stats["total"]; ?></div>
-                </div>
-                <span class="dashboard-icon feature-card-icon"><i class="fa-solid fa-folder-open"></i></span>
-            </div>
-            <div class="metric-trend">All submissions linked to your account</div>
-        </div>
-        <div class="metric-card card-hover">
-            <div class="d-flex justify-content-between align-items-start">
-                <div>
-                    <div class="metric-label">Pending Complaints</div>
-                    <div class="metric-value"><?php echo (int)$stats["pending"]; ?></div>
-                </div>
-                <span class="dashboard-icon" style="background:rgba(245,158,11,.14);color:#9a6700;"><i class="fa-solid fa-hourglass-half"></i></span>
-            </div>
-            <div class="metric-trend">Awaiting review by the response team</div>
-        </div>
-        <div class="metric-card card-hover">
-            <div class="d-flex justify-content-between align-items-start">
-                <div>
-                    <div class="metric-label">Under Investigation</div>
-                    <div class="metric-value"><?php echo (int)$stats["investigating"]; ?></div>
-                </div>
-                <span class="dashboard-icon" style="background:rgba(26,115,232,.14);color:#0f5fcc;"><i class="fa-solid fa-magnifying-glass"></i></span>
-            </div>
-            <div class="metric-trend">Active cases being processed</div>
-        </div>
-        <div class="metric-card card-hover">
-            <div class="d-flex justify-content-between align-items-start">
-                <div>
-                    <div class="metric-label">Resolved Cases</div>
-                    <div class="metric-value"><?php echo (int)$stats["resolved"]; ?></div>
-                </div>
-                <span class="dashboard-icon" style="background:rgba(22,163,74,.14);color:#15703a;"><i class="fa-solid fa-circle-check"></i></span>
-            </div>
-            <div class="metric-trend">Cases completed or closed successfully</div>
-        </div>
-    </section>
-
-    <section class="row g-4 mb-4" id="complaint-history">
-        <div class="col-lg-8">
-            <div class="card p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div>
-                        <p class="text-uppercase small fw-semibold text-primary mb-1">Complaint History</p>
-                        <h4 class="mb-0">Track every complaint in one table</h4>
-                    </div>
-                    <a href="report.php" class="btn btn-primary" data-i18n="Report Crime"><i class="fa-solid fa-plus me-2"></i>Report Crime</a>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-modern align-middle">
-                        <thead>
-                            <tr>
-                                <th>Complaint</th>
-                                <th>Status</th>
-                                <?php if ($has_address) { ?><th>Location</th><?php } ?>
-                                <th>Submitted</th>
-                                <th>Evidence</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        <?php if (count($complaints) > 0) { ?>
-                            <?php foreach ($complaints as $row) { ?>
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-start gap-3">
-                                            <span class="feature-card-icon flex-shrink-0" style="width:48px;height:48px;"><i class="<?php echo h(crime_icon($row["crime_type"])); ?>"></i></span>
-                                            <div>
-                                                <div class="fw-semibold"><?php echo h($row["crime_type"]); ?></div>
-                                                <div class="muted small">
-                                                    #<?php echo (int)$row["id"]; ?> &middot;
-                                                    <span data-translate-content data-original-text="<?php echo h($row["description"]); ?>"><?php echo h($row["description"]); ?></span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td><span class="status-pill <?php echo complaint_status_class($row["status"]); ?>"><?php echo h($row["status"]); ?></span></td>
-                                    <?php if ($has_address) { ?><td class="small muted"><?php echo h($row["address"]); ?></td><?php } ?>
-                                    <td class="small muted"><?php echo h($row["created_at"]); ?></td>
-                                    <td>
-                                        <?php if (!empty($row["evidence"])) { ?>
-                                            <a href="../uploads/<?php echo urlencode($row["evidence"]); ?>" target="_blank" rel="noopener">
-                                                <img src="../uploads/<?php echo urlencode($row["evidence"]); ?>" class="thumbnail-preview" alt="Evidence preview">
-                                            </a>
-                                        <?php } else { ?>
-                                            <span class="muted small" data-i18n="No file">No file</span>
-                                        <?php } ?>
-                                    </td>
-                                </tr>
-                            <?php } ?>
-                        <?php } else { ?>
-                            <tr>
-                                <td colspan="<?php echo $has_address ? 5 : 4; ?>" class="empty-state">
-                                    <div class="mb-2"><i class="fa-regular fa-folder-open fa-2x"></i></div>
-                                    <div data-i18n="No complaints submitted yet.">No complaints submitted yet.</div>
-                                </td>
-                            </tr>
-                        <?php } ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-4">
-            <div class="card p-4 h-100">
-                <p class="text-uppercase small fw-semibold text-primary mb-1" data-i18n="Latest Updates">Latest Updates</p>
-                <h4 class="mb-3" data-i18n="Notifications">Notifications</h4>
-                <?php if (count($notifications) > 0) { ?>
-                    <div class="vstack gap-3">
-                        <?php foreach ($notifications as $n) { ?>
-                            <div class="surface-card p-3">
-                                <div class="d-flex align-items-start gap-3">
-                                    <span class="feature-card-icon flex-shrink-0" style="width:44px;height:44px;"><i class="fa-solid fa-bell"></i></span>
-                                    <div>
-                                        <div class="fw-semibold mb-1"><?php echo h($n["message"]); ?></div>
-                                        <div class="small muted"><?php echo h($n["created_at"]); ?></div>
-                                    </div>
-                                </div>
-                            </div>
-                        <?php } ?>
-                    </div>
-                <?php } else { ?>
-                    <div class="empty-state">
-                        <div class="mb-2"><i class="fa-regular fa-bell-slash fa-2x"></i></div>
-                        <div data-i18n="No notifications yet.">No notifications yet.</div>
-                    </div>
-                <?php } ?>
-            </div>
-        </div>
-    </section>
+    <div class="page-breadcrumb mb-3"><a href="../index.php">Home</a><i class="fa-solid fa-chevron-right small"></i><span class="current">Dashboard</span></div>
+    <?php if ($flash) { ?><div class="alert alert-<?php echo h($flash["type"]); ?> mb-4"><?php echo h($flash["text"]); ?></div><?php } ?>
+    <section class="surface-card p-4 p-lg-5 mb-4"><div class="row align-items-center g-4"><div class="col-lg-8"><p class="text-uppercase small fw-semibold text-primary mb-2">Citizen Dashboard</p><h1 class="section-title mb-2">Welcome, <?php echo h($user["name"]); ?></h1><p class="section-copy mb-0">Track complaints, open live chat per complaint, and respond immediately when admin sends updates.</p></div><div class="col-lg-4"><div class="surface-card p-4"><div class="small text-uppercase fw-semibold text-primary mb-2">Quick Actions</div><div class="d-grid gap-2"><a class="btn btn-primary" href="report.php">New Complaint</a><a class="btn btn-outline-primary" href="../track.php">Track by ID</a></div></div></div></div></section>
+    <section class="stats-grid mb-4"><div class="metric-card"><div class="metric-label">Total Complaints</div><div class="metric-value"><?php echo (int)$stats["total"]; ?></div><div class="metric-trend">All complaints linked to your account</div></div><div class="metric-card"><div class="metric-label">Pending</div><div class="metric-value"><?php echo (int)$stats["pending"]; ?></div><div class="metric-trend">Awaiting review</div></div><div class="metric-card"><div class="metric-label">Investigating</div><div class="metric-value"><?php echo (int)$stats["investigating"]; ?></div><div class="metric-trend">Active case handling</div></div><div class="metric-card"><div class="metric-label">Resolved</div><div class="metric-value"><?php echo (int)$stats["resolved"]; ?></div><div class="metric-trend">Completed complaints</div></div></section>
+    <section class="row g-4" id="complaint-history"><div class="col-lg-8"><div class="card p-4"><div class="d-flex justify-content-between align-items-center mb-3"><div><p class="text-uppercase small fw-semibold text-primary mb-1">Complaint History</p><h4 class="mb-0">Track every complaint and open live chat</h4></div><a href="report.php" class="btn btn-primary">Report Crime</a></div><div class="table-responsive"><table class="table table-modern align-middle"><thead><tr><th>ID</th><th>Crime</th><th>Status</th><?php if ($has_address) { ?><th>Location</th><?php } ?><th>Date</th><th>Actions</th></tr></thead><tbody><?php if ($complaints) { foreach ($complaints as $row) { ?><tr><td class="fw-semibold">#<?php echo (int)$row["id"]; ?></td><td><div class="fw-semibold"><?php echo h($row["crime_type"]); ?></div><div class="small muted"><?php echo h($row["description"]); ?></div></td><td><span class="status-pill <?php echo complaint_status_class($row["status"]); ?>"><?php echo h($row["status"]); ?></span></td><?php if ($has_address) { ?><td class="small muted"><?php echo h($row["address"]); ?></td><?php } ?><td class="small muted"><?php echo h($row["created_at"]); ?></td><td><div class="d-flex gap-2 flex-wrap"><a class="btn btn-sm btn-outline-primary" href="chat.php?complaint_id=<?php echo (int)$row["id"]; ?>">Open Chat</a><a class="btn btn-sm btn-outline-secondary" href="../track.php?complaint_id=<?php echo (int)$row["id"]; ?>">Track</a><?php if (!empty($row["evidence"])) { ?><a class="btn btn-sm btn-outline-dark" href="../uploads/<?php echo urlencode($row["evidence"]); ?>" target="_blank" rel="noopener">Evidence</a><?php } ?></div></td></tr><?php }} else { ?><tr><td colspan="<?php echo $has_address ? 6 : 5; ?>" class="empty-state">No complaints submitted yet.</td></tr><?php } ?></tbody></table></div></div></div><div class="col-lg-4"><div class="card p-4 h-100"><p class="text-uppercase small fw-semibold text-primary mb-1">Latest Notifications</p><h4 class="mb-3">Status and chat updates</h4><div class="vstack gap-3" id="notificationPanel"><?php if ($notifications) { foreach ($notifications as $n) { ?><a class="surface-card p-3 text-dark <?php echo ((int)$n["is_read"] === 0) ? "border border-primary-subtle" : ""; ?>" href="<?php echo h(notification_href($n)); ?>"><div class="fw-semibold mb-1"><?php echo h($n["message"]); ?></div><div class="small muted"><?php echo h($n["created_at"]); ?></div></a><?php }} else { ?><div class="empty-state">No notifications yet.</div><?php } ?></div></div></div></section>
 </main>
-
-<div id="crimeChatbot" class="chatbot-widget" data-api-url="../chatbot/chatbot_api.php">
-    <div class="chatbot-window">
-        <div class="chatbot-header">
-            <span class="chatbot-title" data-i18n="AI Safety Assistant">AI Safety Assistant</span>
-            <button type="button" class="chatbot-close" aria-label="Close chatbot">&times;</button>
-        </div>
-        <div class="chatbot-messages"></div>
-        <div class="chatbot-input-wrap">
-            <input type="text" class="chatbot-input" placeholder="Ask about your complaint or reporting" aria-label="Chat input" data-i18n-placeholder data-i18n-aria-label>
-            <button type="button" class="chatbot-send" data-i18n="Send">Send</button>
-        </div>
-    </div>
-    <button type="button" class="chatbot-toggle" aria-label="Open chatbot"><i class="fa-solid fa-comments"></i></button>
-</div>
-
-<?php translation_render_page_config("../"); ?>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../assets/js/app.js"></script>
-<script src="../assets/translation.js"></script>
-<script src="../chatbot/chatbot.js"></script>
+<div id="crimeChatbot" class="chatbot-widget" data-api-url="../chatbot/chatbot_api.php"><div class="chatbot-window"><div class="chatbot-header"><span class="chatbot-title">AI Safety Assistant</span><button type="button" class="chatbot-close" aria-label="Close chatbot">&times;</button></div><div class="chatbot-messages"></div><div class="chatbot-input-wrap"><input type="text" class="chatbot-input" placeholder="Ask about your complaint or reporting" aria-label="Chat input"><button type="button" class="chatbot-send">Send</button></div></div><button type="button" class="chatbot-toggle" aria-label="Open chatbot"><i class="fa-solid fa-comments"></i></button></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script><script src="../assets/js/app.js"></script><script src="../chatbot/chatbot.js"></script><script>
+document.addEventListener("DOMContentLoaded", function () { const bellCount = document.getElementById("notificationCount"), list = document.getElementById("notificationList"), panel = document.getElementById("notificationPanel"), markAllBtn = document.getElementById("markAllRead"); function href(item){ if (!item.complaint_id) return '#'; if (item.type === 'chat') return `chat.php?complaint_id=${item.complaint_id}`; if (item.type === 'update') return `report.php?complaint_id=${item.complaint_id}`; return `../track.php?complaint_id=${item.complaint_id}`; } function esc(text){ const div=document.createElement('div'); div.textContent=text||''; return div.innerHTML; } function renderNotifications(items){ const unread = items.filter(item => Number(item.is_read) === 0).length; bellCount.textContent = unread; bellCount.hidden = unread === 0; if (!items.length) { list.innerHTML = '<div class="p-3 text-muted small">No notifications yet.</div>'; panel.innerHTML = '<div class="empty-state">No notifications yet.</div>'; return; } list.innerHTML = items.map(item => `<a class="list-group-item list-group-item-action ${Number(item.is_read) === 0 ? 'bg-light' : ''}" href="${href(item)}" data-notification-id="${item.id}"><div class="fw-semibold small">${esc(item.message)}</div><div class="small text-muted">${esc(item.created_at)}</div></a>`).join(''); panel.innerHTML = items.map(item => `<a class="surface-card p-3 text-dark ${Number(item.is_read) === 0 ? 'border border-primary-subtle' : ''}" href="${href(item)}"><div class="fw-semibold mb-1">${esc(item.message)}</div><div class="small muted">${esc(item.created_at)}</div></a>`).join(''); }
+function fetchNotifications(){ fetch('../api/get_notifications.php').then(response => response.json()).then(data => { if (data && data.success) renderNotifications(data.notifications || []); }).catch(() => {}); }
+function markRead(notificationId, markAll){ const body = new URLSearchParams(); body.set('action', markAll ? 'mark_all_read' : 'mark_read'); if (notificationId) body.set('notification_id', notificationId); fetch('../api/get_notifications.php', { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body: body.toString() }).then(response => response.json()).then(data => { if (data && data.success) fetchNotifications(); }).catch(() => {}); }
+list.addEventListener('click', function (event) { const link = event.target.closest('[data-notification-id]'); if (!link) return; markRead(link.getAttribute('data-notification-id'), false); }); markAllBtn.addEventListener('click', function(){ markRead(null, true); }); fetchNotifications(); window.setInterval(fetchNotifications, 3000); });
+</script>
 </body>
 </html>

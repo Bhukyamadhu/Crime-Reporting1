@@ -7,7 +7,7 @@ $is_user_logged_in = !empty($_SESSION["user_id"]);
 $is_admin_logged_in = isset($_SESSION["admin_id"]);
 ?>
 <!DOCTYPE html>
-<html lang="<?php echo h(translation_get_html_lang()); ?>">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -18,7 +18,6 @@ $is_admin_logged_in = isset($_SESSION["admin_id"]);
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="assets/css/app.css">
-    <link rel="stylesheet" href="assets/translation.css">
     <link rel="stylesheet" href="chatbot/chatbot.css">
 </head>
 <body>
@@ -27,8 +26,8 @@ $is_admin_logged_in = isset($_SESSION["admin_id"]);
         <a class="navbar-brand d-flex align-items-center gap-3 fw-semibold" href="index.php">
             <span class="navbar-brand-mark"><i class="fa-solid fa-shield-halved"></i></span>
             <span class="navbar-brand-text">
-                <span data-i18n="Crime Reporting System">Crime Reporting System</span>
-                <small data-i18n="Smart city incident response portal">Smart city incident response portal</small>
+                Crime Reporting System
+                <small>Smart city incident response portal</small>
             </span>
         </a>
         <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,28 +35,27 @@ $is_admin_logged_in = isset($_SESSION["admin_id"]);
         </button>
         <div class="collapse navbar-collapse" id="mainNav">
             <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-1 me-lg-3">
-                <li class="nav-item"><a class="nav-link app-nav-link active" href="index.php" data-i18n="Home">Home</a></li>
-                <li class="nav-item"><a class="nav-link app-nav-link" href="user/report.php" data-i18n="Report Crime">Report Crime</a></li>
-                <li class="nav-item"><a class="nav-link app-nav-link" href="user/dashboard.php" data-i18n="Dashboard">Dashboard</a></li>
-                <li class="nav-item"><a class="nav-link app-nav-link" href="user/dashboard.php#complaint-history" data-i18n="Track Complaint">Track Complaint</a></li>
-                <li class="nav-item"><a class="nav-link app-nav-link" href="public_stats.php" data-i18n="Statistics">Statistics</a></li>
+                <li class="nav-item"><a class="nav-link app-nav-link active" href="index.php">Home</a></li>
+                <li class="nav-item"><a class="nav-link app-nav-link" href="user/report.php">Report Crime</a></li>
+                <li class="nav-item"><a class="nav-link app-nav-link" href="user/dashboard.php">Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link app-nav-link" href="user/dashboard.php#complaint-history">Track Complaint</a></li>
+                <li class="nav-item"><a class="nav-link app-nav-link" href="public_stats.php">Statistics</a></li>
                 <?php if ($is_user_logged_in) { ?>
-                    <li class="nav-item"><a class="nav-link app-nav-link" href="user/logout.php" data-i18n="Logout">Logout</a></li>
+                    <li class="nav-item"><a class="nav-link app-nav-link" href="user/logout.php">Logout</a></li>
                 <?php } elseif ($is_admin_logged_in) { ?>
-                    <li class="nav-item"><a class="nav-link app-nav-link" href="admin/logout.php" data-i18n="Logout">Logout</a></li>
+                    <li class="nav-item"><a class="nav-link app-nav-link" href="admin/logout.php">Logout</a></li>
                 <?php } else { ?>
-                    <li class="nav-item"><a class="nav-link app-nav-link" href="user/login.php" data-i18n="Login">Login</a></li>
+                    <li class="nav-item"><a class="nav-link app-nav-link" href="user/login.php">Login</a></li>
                 <?php } ?>
             </ul>
             <div class="d-grid d-lg-flex gap-2">
-                <?php translation_render_language_selector(); ?>
                 <?php if ($is_user_logged_in) { ?>
-                    <a class="btn btn-outline-primary" href="user/dashboard.php" data-i18n="My Dashboard">My Dashboard</a>
+                    <a class="btn btn-outline-primary" href="user/dashboard.php">My Dashboard</a>
                 <?php } elseif ($is_admin_logged_in) { ?>
-                    <a class="btn btn-outline-primary" href="admin/dashboard.php" data-i18n="Admin Dashboard">Admin Dashboard</a>
+                    <a class="btn btn-outline-primary" href="admin/dashboard.php">Admin Dashboard</a>
                 <?php } else { ?>
-                    <a class="btn btn-outline-primary" href="user/login.php" data-i18n="Citizen Login">Citizen Login</a>
-                    <a class="btn btn-dark" href="admin/login.php" data-i18n="Admin Access">Admin Access</a>
+                    <a class="btn btn-outline-primary" href="user/login.php">Citizen Login</a>
+                    <a class="btn btn-dark" href="admin/login.php">Admin Access</a>
                 <?php } ?>
             </div>
         </div>
@@ -75,12 +73,12 @@ $is_admin_logged_in = isset($_SESSION["admin_id"]);
     <div class="container hero-copy">
         <div class="row align-items-center g-5">
             <div class="col-lg-7">
-                <span class="hero-eyebrow" data-i18n="Secure digital reporting for public safety"><i class="fa-solid fa-tower-broadcast"></i> Secure digital reporting for public safety</span>
-                <h1 class="hero-title" data-i18n="Report Crimes Quickly & Securely">Report Crimes Quickly &amp; Securely</h1>
-                <p class="hero-description" data-i18n="Submit incidents with verified location data, upload evidence, monitor complaint progress, and access transparent public safety insights through one modern service portal.">Submit incidents with verified location data, upload evidence, monitor complaint progress, and access transparent public safety insights through one modern service portal.</p>
+                <span class="hero-eyebrow"><i class="fa-solid fa-tower-broadcast"></i> Secure digital reporting for public safety</span>
+                <h1 class="hero-title">Report Crimes Quickly &amp; Securely</h1>
+                <p class="hero-description">Submit incidents with verified location data, upload evidence, monitor complaint progress, and access transparent public safety insights through one modern service portal.</p>
                 <div class="d-flex flex-wrap gap-3 mt-4">
-                    <a href="user/report.php" class="btn btn-primary btn-lg" data-i18n="Report Crime"><i class="fa-solid fa-file-circle-plus me-2"></i>Report Crime</a>
-                    <a href="user/dashboard.php" class="btn btn-soft btn-lg" data-i18n="Track Complaint"><i class="fa-solid fa-magnifying-glass-location me-2"></i>Track Complaint</a>
+                    <a href="user/report.php" class="btn btn-primary btn-lg"><i class="fa-solid fa-file-circle-plus me-2"></i>Report Crime</a>
+                    <a href="user/dashboard.php" class="btn btn-soft btn-lg"><i class="fa-solid fa-magnifying-glass-location me-2"></i>Track Complaint</a>
                 </div>
                 <div class="hero-metrics">
                     <div class="hero-metric">
@@ -213,22 +211,20 @@ $is_admin_logged_in = isset($_SESSION["admin_id"]);
 <div id="crimeChatbot" class="chatbot-widget" data-api-url="chatbot/chatbot_api.php">
     <div class="chatbot-window">
         <div class="chatbot-header">
-            <span class="chatbot-title" data-i18n="AI Safety Assistant">AI Safety Assistant</span>
+            <span class="chatbot-title">AI Safety Assistant</span>
             <button type="button" class="chatbot-close" aria-label="Close chatbot">&times;</button>
         </div>
         <div class="chatbot-messages"></div>
         <div class="chatbot-input-wrap">
-            <input type="text" class="chatbot-input" placeholder="Ask about reporting, evidence, or tracking" aria-label="Chat input" data-i18n-placeholder data-i18n-aria-label>
-            <button type="button" class="chatbot-send" data-i18n="Send">Send</button>
+            <input type="text" class="chatbot-input" placeholder="Ask about reporting, evidence, or tracking" aria-label="Chat input">
+            <button type="button" class="chatbot-send">Send</button>
         </div>
     </div>
     <button type="button" class="chatbot-toggle" aria-label="Open chatbot"><i class="fa-solid fa-comments"></i></button>
 </div>
 
-<?php translation_render_page_config(); ?>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="assets/js/app.js"></script>
-<script src="assets/translation.js"></script>
 <script src="chatbot/chatbot.js"></script>
 </body>
 </html>
