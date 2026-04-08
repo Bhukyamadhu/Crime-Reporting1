@@ -112,4 +112,6 @@ function security_require_admin($redirect = "login.php") {
         exit();
     }
 }
+
+include_once(__DIR__ . "/translation.php");
 ?>

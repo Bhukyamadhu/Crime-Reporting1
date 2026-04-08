@@ -86,7 +86,7 @@ function crime_icon($type) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo h(translation_get_html_lang()); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -97,6 +97,7 @@ function crime_icon($type) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="../assets/css/app.css">
+    <link rel="stylesheet" href="../assets/translation.css">
     <link rel="stylesheet" href="../chatbot/chatbot.css">
 </head>
 <body>
@@ -105,8 +106,8 @@ function crime_icon($type) {
         <a class="navbar-brand d-flex align-items-center gap-3 fw-semibold" href="../index.php">
             <span class="navbar-brand-mark"><i class="fa-solid fa-shield-halved"></i></span>
             <span class="navbar-brand-text">
-                Crime Reporting System
-                <small>Citizen service dashboard</small>
+                <span data-i18n="Crime Reporting System">Crime Reporting System</span>
+                <small data-i18n="Citizen service dashboard">Citizen service dashboard</small>
             </span>
         </a>
         <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#userNav" aria-controls="userNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -114,15 +115,16 @@ function crime_icon($type) {
         </button>
         <div class="collapse navbar-collapse" id="userNav">
             <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-1 me-lg-3">
-                <li class="nav-item"><a class="nav-link app-nav-link" href="../index.php">Home</a></li>
-                <li class="nav-item"><a class="nav-link app-nav-link" href="report.php">Report Crime</a></li>
-                <li class="nav-item"><a class="nav-link app-nav-link active" href="dashboard.php">Dashboard</a></li>
-                <li class="nav-item"><a class="nav-link app-nav-link" href="#complaint-history">Track Complaint</a></li>
-                <li class="nav-item"><a class="nav-link app-nav-link" href="../public_stats.php">Statistics</a></li>
-                <li class="nav-item"><a class="nav-link app-nav-link" href="logout.php">Logout</a></li>
+                <li class="nav-item"><a class="nav-link app-nav-link" href="../index.php" data-i18n="Home">Home</a></li>
+                <li class="nav-item"><a class="nav-link app-nav-link" href="report.php" data-i18n="Report Crime">Report Crime</a></li>
+                <li class="nav-item"><a class="nav-link app-nav-link active" href="dashboard.php" data-i18n="Dashboard">Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link app-nav-link" href="#complaint-history" data-i18n="Track Complaint">Track Complaint</a></li>
+                <li class="nav-item"><a class="nav-link app-nav-link" href="../public_stats.php" data-i18n="Statistics">Statistics</a></li>
+                <li class="nav-item"><a class="nav-link app-nav-link" href="logout.php" data-i18n="Logout">Logout</a></li>
             </ul>
             <div class="d-grid d-lg-flex gap-2">
-                <a href="report.php" class="btn btn-primary">New Report</a>
+                <?php translation_render_language_selector("../"); ?>
+                <a href="report.php" class="btn btn-primary" data-i18n="New Report">New Report</a>
             </div>
         </div>
     </div>
@@ -131,9 +133,9 @@ function crime_icon($type) {
 <main class="container py-4 py-lg-5">
     <div class="page-topbar">
         <div class="page-breadcrumb">
-            <a href="../index.php">Home</a>
-            <i class="fa-solid fa-chevron-right small"></i>
-            <span class="current">Dashboard</span>
+                <a href="../index.php" data-i18n="Home">Home</a>
+                <i class="fa-solid fa-chevron-right small"></i>
+                <span class="current" data-i18n="Dashboard">Dashboard</span>
         </div>
         <div class="page-toolbar">
             <div class="nav-shortcuts">
@@ -151,9 +153,9 @@ function crime_icon($type) {
     <section class="surface-card p-4 p-lg-5 mb-4">
         <div class="row align-items-center g-4">
             <div class="col-lg-8">
-                <p class="text-uppercase small fw-semibold text-primary mb-2">Citizen Dashboard</p>
+                <p class="text-uppercase small fw-semibold text-primary mb-2" data-i18n="Citizen Dashboard">Citizen Dashboard</p>
                 <h1 class="section-title mb-2">Welcome, <?php echo h($user["name"]); ?></h1>
-                <p class="section-copy mb-0">Monitor your complaints, review evidence submissions, and use the shortcuts below to move quickly between reporting, tracking, and public statistics.</p>
+                <p class="section-copy mb-0" data-i18n="Monitor your complaints, review evidence submissions, and use the shortcuts below to move quickly between reporting, tracking, and public statistics.">Monitor your complaints, review evidence submissions, and use the shortcuts below to move quickly between reporting, tracking, and public statistics.</p>
             </div>
             <div class="col-lg-4">
                 <div class="surface-card p-4 h-100">
@@ -224,7 +226,7 @@ function crime_icon($type) {
                         <p class="text-uppercase small fw-semibold text-primary mb-1">Complaint History</p>
                         <h4 class="mb-0">Track every complaint in one table</h4>
                     </div>
-                    <a href="report.php" class="btn btn-primary"><i class="fa-solid fa-plus me-2"></i>Report Crime</a>
+                    <a href="report.php" class="btn btn-primary" data-i18n="Report Crime"><i class="fa-solid fa-plus me-2"></i>Report Crime</a>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-modern align-middle">
@@ -246,7 +248,10 @@ function crime_icon($type) {
                                             <span class="feature-card-icon flex-shrink-0" style="width:48px;height:48px;"><i class="<?php echo h(crime_icon($row["crime_type"])); ?>"></i></span>
                                             <div>
                                                 <div class="fw-semibold"><?php echo h($row["crime_type"]); ?></div>
-                                                <div class="muted small">#<?php echo (int)$row["id"]; ?> &middot; <?php echo h($row["description"]); ?></div>
+                                                <div class="muted small">
+                                                    #<?php echo (int)$row["id"]; ?> &middot;
+                                                    <span data-translate-content data-original-text="<?php echo h($row["description"]); ?>"><?php echo h($row["description"]); ?></span>
+                                                </div>
                                             </div>
                                         </div>
                                     </td>
@@ -259,7 +264,7 @@ function crime_icon($type) {
                                                 <img src="../uploads/<?php echo urlencode($row["evidence"]); ?>" class="thumbnail-preview" alt="Evidence preview">
                                             </a>
                                         <?php } else { ?>
-                                            <span class="muted small">No file</span>
+                                            <span class="muted small" data-i18n="No file">No file</span>
                                         <?php } ?>
                                     </td>
                                 </tr>
@@ -268,7 +273,7 @@ function crime_icon($type) {
                             <tr>
                                 <td colspan="<?php echo $has_address ? 5 : 4; ?>" class="empty-state">
                                     <div class="mb-2"><i class="fa-regular fa-folder-open fa-2x"></i></div>
-                                    <div>No complaints submitted yet.</div>
+                                    <div data-i18n="No complaints submitted yet.">No complaints submitted yet.</div>
                                 </td>
                             </tr>
                         <?php } ?>
@@ -279,8 +284,8 @@ function crime_icon($type) {
         </div>
         <div class="col-lg-4">
             <div class="card p-4 h-100">
-                <p class="text-uppercase small fw-semibold text-primary mb-1">Latest Updates</p>
-                <h4 class="mb-3">Notifications</h4>
+                <p class="text-uppercase small fw-semibold text-primary mb-1" data-i18n="Latest Updates">Latest Updates</p>
+                <h4 class="mb-3" data-i18n="Notifications">Notifications</h4>
                 <?php if (count($notifications) > 0) { ?>
                     <div class="vstack gap-3">
                         <?php foreach ($notifications as $n) { ?>
@@ -298,7 +303,7 @@ function crime_icon($type) {
                 <?php } else { ?>
                     <div class="empty-state">
                         <div class="mb-2"><i class="fa-regular fa-bell-slash fa-2x"></i></div>
-                        <div>No notifications yet.</div>
+                        <div data-i18n="No notifications yet.">No notifications yet.</div>
                     </div>
                 <?php } ?>
             </div>
@@ -309,20 +314,22 @@ function crime_icon($type) {
 <div id="crimeChatbot" class="chatbot-widget" data-api-url="../chatbot/chatbot_api.php">
     <div class="chatbot-window">
         <div class="chatbot-header">
-            <span class="chatbot-title">AI Safety Assistant</span>
+            <span class="chatbot-title" data-i18n="AI Safety Assistant">AI Safety Assistant</span>
             <button type="button" class="chatbot-close" aria-label="Close chatbot">&times;</button>
         </div>
         <div class="chatbot-messages"></div>
         <div class="chatbot-input-wrap">
-            <input type="text" class="chatbot-input" placeholder="Ask about your complaint or reporting" aria-label="Chat input">
-            <button type="button" class="chatbot-send">Send</button>
+            <input type="text" class="chatbot-input" placeholder="Ask about your complaint or reporting" aria-label="Chat input" data-i18n-placeholder data-i18n-aria-label>
+            <button type="button" class="chatbot-send" data-i18n="Send">Send</button>
         </div>
     </div>
     <button type="button" class="chatbot-toggle" aria-label="Open chatbot"><i class="fa-solid fa-comments"></i></button>
 </div>
 
+<?php translation_render_page_config("../"); ?>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="../assets/js/app.js"></script>
+<script src="../assets/translation.js"></script>
 <script src="../chatbot/chatbot.js"></script>
 </body>
 </html>

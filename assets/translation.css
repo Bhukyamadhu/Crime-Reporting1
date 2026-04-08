@@ -1,0 +1,23 @@
+.language-switcher {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 170px;
+}
+
+.app-language-select {
+    border-radius: 999px;
+    border-color: rgba(26, 115, 232, 0.18);
+    background-color: rgba(255, 255, 255, 0.95);
+    padding-right: 2.25rem;
+}
+
+.translation-content-body {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.translation-toggle {
+    font-weight: 600;
+    text-decoration: none;
+}
