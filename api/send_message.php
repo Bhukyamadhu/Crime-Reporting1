@@ -8,22 +8,22 @@ $is_admin = isset($_SESSION["admin_id"]);
 $is_user = !empty($_SESSION["user_id"]);
 if (!$is_admin && !$is_user) {
     http_response_code(401);
-    echo json_encode(["success" => false, "error" => "Unauthorized"]);
+    echo json_encode(["success" => false, "status" => "error", "error" => "Unauthorized"]);
     exit();
 }
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     http_response_code(405);
-    echo json_encode(["success" => false, "error" => "Method not allowed"]);
+    echo json_encode(["success" => false, "status" => "error", "error" => "Method not allowed"]);
     exit();
 }
 
 $complaint_id = (int)($_POST["complaint_id"] ?? 0);
-$message_text = trim($_POST["message_text"] ?? "");
+$message_text = trim($_POST["message_text"] ?? $_POST["message"] ?? "");
 $attachment = null;
 if ($complaint_id <= 0 || $message_text === "") {
     http_response_code(422);
-    echo json_encode(["success" => false, "error" => "Complaint and message are required."]);
+    echo json_encode(["success" => false, "status" => "error", "error" => "Complaint and message are required."]);
     exit();
 }
 
@@ -34,14 +34,14 @@ $complaint_result = mysqli_stmt_get_result($complaint_stmt);
 $complaint = $complaint_result ? mysqli_fetch_assoc($complaint_result) : null;
 if (!$complaint) {
     http_response_code(404);
-    echo json_encode(["success" => false, "error" => "Complaint not found."]);
+    echo json_encode(["success" => false, "status" => "error", "error" => "Complaint not found."]);
     exit();
 }
 
 $complaint_user_id = (int)$complaint["user_id"];
 if ($is_user && (int)$_SESSION["user_id"] !== $complaint_user_id) {
     http_response_code(403);
-    echo json_encode(["success" => false, "error" => "Access denied."]);
+    echo json_encode(["success" => false, "status" => "error", "error" => "Access denied."]);
     exit();
 }
 
@@ -71,7 +71,7 @@ $insert = mysqli_prepare($conn, "INSERT INTO messages (complaint_id, sender_id, 
 mysqli_stmt_bind_param($insert, "iiiss", $complaint_id, $sender_id, $receiver_id, $message_text, $attachment);
 if (!mysqli_stmt_execute($insert)) {
     http_response_code(500);
-    echo json_encode(["success" => false, "error" => "Unable to send message."]);
+    echo json_encode(["success" => false, "status" => "error", "error" => "Unable to send message."]);
     exit();
 }
 
@@ -81,5 +81,6 @@ if ($notification_text !== null) {
     mysqli_stmt_execute($notif);
 }
 
-echo json_encode(["success" => true, "message_id" => (int)mysqli_insert_id($conn)]);
+echo json_encode(["success" => true, "status" => "success", "message_id" => (int)mysqli_insert_id($conn)]);
 ?>
+

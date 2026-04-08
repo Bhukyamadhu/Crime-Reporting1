@@ -58,7 +58,7 @@ function chat_status_class($status) {
         <div id="chatMessages" class="case-chat-box"></div>
         <form id="chatForm" class="case-form">
             <textarea id="chatInput" class="form-control" placeholder="Type your message to admin..." required></textarea>
-            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane me-2"></i>Send</button>
+            <button type="submit" class="btn btn-primary" id="sendMessageBtn"><i class="fa-solid fa-paper-plane me-2"></i>Send</button>
         </form>
     </section>
 </main>
@@ -68,8 +68,11 @@ function chat_status_class($status) {
 document.addEventListener("DOMContentLoaded", function(){
     const complaintId = <?php echo (int)$complaint_id; ?>;
     const chatMessages = document.getElementById("chatMessages");
+    const chatBox = chatMessages;
     const chatForm = document.getElementById("chatForm");
     const chatInput = document.getElementById("chatInput");
+    const messageInput = chatInput;
+    const sendMessageBtn = document.getElementById("sendMessageBtn");
     const chatStatus = document.getElementById("chatStatus");
     let lastMessageId = 0;
     let initialized = false;
@@ -92,27 +95,36 @@ document.addEventListener("DOMContentLoaded", function(){
         initialized = true;
     }
 
-    function fetchMessages(){
+    function loadMessages(){
         fetch(`../api/get_messages.php?complaint_id=${complaintId}`)
-            .then(r => r.json())
-            .then(data => { if (data && data.success) { render(data.messages || []); return fetch("../api/mark_seen.php", { method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded"}, body:`complaint_id=${complaintId}`}); } })
-            .catch(() => { chatStatus.textContent = "Unable to refresh chat right now."; });
+            .then(function (r) { if (!r.ok) { throw new Error("get_messages failed with status " + r.status); } return r.json(); })
+            .then(function (data) { console.log("[chat] loadMessages", data); if (data && (data.success || data.status === "success")) { render(data.messages || []); return fetch("../api/mark_seen.php", { method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded"}, body:`complaint_id=${complaintId}`}); } throw new Error((data && data.error) || "Unable to load messages."); })
+            .catch(function (error) { console.error("[chat] loadMessages error", error); chatStatus.textContent = "Unable to refresh chat right now."; });
     }
+
+    if (!chatForm || !messageInput || !sendMessageBtn || !chatBox) {
+        console.error("[chat] Required DOM nodes are missing.");
+        return;
+    }
+
+    sendMessageBtn.addEventListener("click", function () { console.log("[chat] send button clicked"); });
 
     chatForm.addEventListener("submit", function(e){
         e.preventDefault();
-        const text = chatInput.value.trim();
+        const text = messageInput.value.trim();
+        console.log("[chat] submit", { complaintId: complaintId, hasMessage: text.length > 0 });
         if (!text) return;
         chatStatus.textContent = "Sending message...";
-        fetch("../api/send_message.php", { method:"POST", body:(() => { const fd = new FormData(); fd.append("complaint_id", complaintId); fd.append("message_text", text); return fd; })() })
-            .then(r => r.json())
-            .then(data => { if (data && data.success) { chatInput.value = ""; chatStatus.textContent = "Message sent."; fetchMessages(); } else { chatStatus.textContent = (data && data.error) || "Unable to send message."; } })
-            .catch(() => { chatStatus.textContent = "Unable to send message."; });
+        fetch("../api/send_message.php", { method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded"}, body:`complaint_id=${encodeURIComponent(complaintId)}&message=${encodeURIComponent(text)}` })
+            .then(function (r) { if (!r.ok) { throw new Error("get_messages failed with status " + r.status); } return r.json(); })
+            .then(function (data) { console.log("[chat] send response", data); if (data && (data.success || data.status === "success")) { messageInput.value = ""; chatStatus.textContent = "Message sent."; loadMessages(); } else { chatStatus.textContent = (data && data.error) || "Unable to send message."; } })
+            .catch(function (error) { console.error("[chat] send error", error); chatStatus.textContent = "Unable to send message."; });
     });
 
-    fetchMessages();
-    window.setInterval(fetchMessages, 3000);
+    loadMessages();
+    window.setInterval(loadMessages, 3000);
 });
 </script>
 </body>
 </html>
+

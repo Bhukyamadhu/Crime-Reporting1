@@ -160,62 +160,72 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <link rel="stylesheet" href="../assets/css/app.css">
     <link rel="stylesheet" href="../assets/css/custom.css">
     <link rel="stylesheet" href="../chatbot/chatbot.css">
-    <style>#map{height:420px;}</style>
+    <style>
+        #map { height: 420px; }
+        .step { display: none; }
+        .step.active { display: block; }
+        .step-shell { border: 1px solid rgba(219, 228, 240, 0.95); border-radius: 22px; background: #fff; padding: 1.5rem; }
+        .step-actions { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-top: 1.5rem; position: relative; z-index: 1092; }
+        .step-actions .btn { position: relative; z-index: 1093; }
+        body.report-page .chatbot-widget:not(.open) { bottom: 112px; z-index: 1040; }
+        @media (max-width: 767.98px) {
+            .step-actions { flex-direction: column; }
+            .step-actions .btn { width: 100%; }
+            body.report-page .chatbot-widget:not(.open) { bottom: 96px; z-index: 1040; }
+        }
+    </style>
 </head>
-<body>
+<body class="report-page">
 <nav class="navbar navbar-expand-lg glass-nav"><div class="container py-2"><a class="navbar-brand d-flex align-items-center gap-3 fw-semibold" href="../index.php"><span class="navbar-brand-mark"><i class="fa-solid fa-shield-halved"></i></span><span class="navbar-brand-text">Crime Reporting System<small><?php echo $is_edit_mode ? "Update complaint details" : "Secure incident submission"; ?></small></span></a><button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#reportNav"><span class="navbar-toggler-icon"></span></button><div class="collapse navbar-collapse" id="reportNav"><ul class="navbar-nav ms-auto align-items-lg-center gap-lg-1 me-lg-3"><li class="nav-item"><a class="nav-link app-nav-link" href="../index.php">Home</a></li><li class="nav-item"><a class="nav-link app-nav-link active" href="report.php">Report Crime</a></li><li class="nav-item"><a class="nav-link app-nav-link" href="dashboard.php">Dashboard</a></li><li class="nav-item"><a class="nav-link app-nav-link" href="dashboard.php#complaint-history">Track Complaint</a></li><li class="nav-item"><a class="nav-link app-nav-link" href="../public_stats.php">Statistics</a></li><li class="nav-item"><a class="nav-link app-nav-link" href="logout.php">Logout</a></li></ul></div></div></nav>
 <main class="container py-4 py-lg-5">
     <div class="page-breadcrumb mb-3"><a href="../index.php">Home</a><i class="fa-solid fa-chevron-right small"></i><a href="dashboard.php">Dashboard</a><i class="fa-solid fa-chevron-right small"></i><span class="current"><?php echo $is_edit_mode ? "Update Complaint" : "Report Crime"; ?></span></div>
     <?php if ($message !== "") { ?><div class="alert alert-<?php echo h($message_type); ?> mb-4"><?php echo h($message); ?></div><?php } ?>
-    <form method="POST" enctype="multipart/form-data" data-loading-target="#reportLoading" class="needs-validation complaint-wizard-form" id="complaintWizardForm" novalidate>
+
+    <form method="POST" enctype="multipart/form-data" data-loading-target="#reportLoading" class="needs-validation" id="complaintWizardForm" data-has-address="<?php echo $has_address ? "1" : "0"; ?>" data-existing-evidence="<?php echo h(!empty($existing_complaint["evidence"]) ? $existing_complaint["evidence"] : ""); ?>" novalidate>
         <?php echo csrf_input(); ?>
-        <section class="card p-4 p-lg-5 mb-4 complaint-wizard-shell">
-            <div class="wizard-header mb-4">
-                <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
-                    <div>
-                        <p class="text-uppercase small fw-semibold text-primary mb-1"><?php echo $is_edit_mode ? "Complaint Re-submission" : "New Complaint Wizard"; ?></p>
-                        <h2 class="mb-2"><?php echo $is_edit_mode ? "Update and resubmit your complaint" : "Report an incident in four guided steps"; ?></h2>
-                        <p class="muted mb-0">Complete each section carefully. Your information is kept intact while the form guides you through the required details.</p>
-                    </div>
-                    <div class="wizard-badge"><?php echo $is_edit_mode ? "Edit Mode" : "Secure Form"; ?></div>
+        <section class="card p-4 p-lg-5 mb-4">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+                <div>
+                    <p class="text-uppercase small fw-semibold text-primary mb-1"><?php echo $is_edit_mode ? "Complaint Re-submission" : "New Complaint Form"; ?></p>
+                    <h2 class="mb-2"><?php echo $is_edit_mode ? "Update and resubmit your complaint" : "Report an incident in four clear steps"; ?></h2>
+                    <p class="muted mb-0">Only one step is visible at a time. Use Next and Previous to move through the form.</p>
                 </div>
-                <div class="complaint-progress" data-current-step="1">
-                    <div class="progress-step is-active" data-step="1"><span class="step-index">1</span><div class="step-copy"><strong>Personal Details</strong><span>Identity and contact details</span></div></div>
-                    <div class="progress-step" data-step="2"><span class="step-index">2</span><div class="step-copy"><strong>Crime Details</strong><span>Incident summary and evidence</span></div></div>
-                    <div class="progress-step" data-step="3"><span class="step-index">3</span><div class="step-copy"><strong>Location Selection</strong><span>Pinpoint the incident area</span></div></div>
-                    <div class="progress-step" data-step="4"><span class="step-index">4</span><div class="step-copy"><strong>Review & Submit</strong><span>Confirm before sending</span></div></div>
-                </div>
+                <span class="wizard-badge"><?php echo $is_edit_mode ? "Edit Mode" : "Secure Form"; ?></span>
             </div>
 
-            <div class="wizard-step is-active" data-step="1">
+            <div class="progress mb-4">
+                <div id="progressBar" class="progress-bar" role="progressbar" style="width: 25%" aria-valuemin="0" aria-valuemax="100" aria-valuenow="25"></div>
+            </div>
+
+            <div class="step active" id="step1">
                 <div class="row g-4">
                     <div class="col-lg-7">
-                        <div class="form-card wizard-panel h-100">
+                        <div class="step-shell h-100">
                             <h4 class="mb-3">Step 1: Personal Details</h4>
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label">Full Name</label>
-                                    <input type="text" name="full_name" class="form-control" value="<?php echo h($form["full_name"]); ?>" required pattern="^[A-Za-z][A-Za-z\s.'-]*$" data-review-target="reviewFullName">
+                                    <input type="text" name="full_name" class="form-control" value="<?php echo h($form["full_name"]); ?>" required>
                                     <div class="invalid-feedback">Enter a valid full name without numbers.</div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Age</label>
-                                    <input type="number" name="age" class="form-control" value="<?php echo h($form["age"]); ?>" min="18" required data-review-target="reviewAge">
+                                    <input type="number" name="age" class="form-control" value="<?php echo h($form["age"]); ?>" min="18" required>
                                     <div class="invalid-feedback">Age must be 18 or above.</div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Nationality</label>
-                                    <input type="text" name="nationality" class="form-control" value="Indian" readonly required data-review-target="reviewNationality">
+                                    <input type="text" name="nationality" class="form-control" value="Indian" readonly required>
                                     <div class="invalid-feedback">Nationality must be Indian.</div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Phone Number</label>
-                                    <input type="text" name="phone_number" class="form-control" value="<?php echo h($form["phone_number"]); ?>" maxlength="10" required pattern="\d{10}" data-review-target="reviewPhone">
+                                    <input type="text" name="phone_number" class="form-control" value="<?php echo h($form["phone_number"]); ?>" maxlength="10" required>
                                     <div class="invalid-feedback">Enter a 10-digit phone number.</div>
                                 </div>
                                 <div class="col-12">
                                     <label class="form-label">Address</label>
-                                    <textarea name="reporter_address" class="form-control" rows="4" required data-review-target="reviewReporterAddress"><?php echo h($form["reporter_address"]); ?></textarea>
+                                    <textarea name="reporter_address" class="form-control" rows="4" required><?php echo h($form["reporter_address"]); ?></textarea>
                                     <div class="invalid-feedback">Enter your residential address.</div>
                                 </div>
                             </div>
@@ -224,36 +234,35 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     <div class="col-lg-5">
                         <div class="wizard-side-panel h-100">
                             <div class="wizard-side-icon"><i class="fa-solid fa-id-card"></i></div>
-                            <h5 class="mb-3">Identity validation</h5>
+                            <h5 class="mb-3">Validation rules</h5>
                             <ul class="wizard-hint-list">
                                 <li>Name must contain letters only.</li>
                                 <li>Age must be at least 18 years.</li>
-                                <li>Nationality is locked to Indian.</li>
+                                <li>Nationality must remain Indian.</li>
                                 <li>Phone number must contain exactly 10 digits.</li>
                             </ul>
                         </div>
                     </div>
                 </div>
-                <div class="wizard-nav mt-4">
+                <div class="step-actions">
                     <a href="dashboard.php" class="btn btn-outline-primary">Back to Dashboard</a>
-                    <button type="button" class="btn btn-primary wizard-next">Next</button>
+                    <button type="button" id="nextBtn" class="btn btn-primary nextBtn">Next</button>
                 </div>
             </div>
 
-            <div class="wizard-step" data-step="2">
+            <div class="step" id="step2">
                 <div class="row g-4">
                     <div class="col-lg-7">
-                        <div class="form-card wizard-panel h-100">
+                        <div class="step-shell h-100">
                             <h4 class="mb-3">Step 2: Crime Details</h4>
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label">Crime Type</label>
-                                    <select name="crime_type" class="form-select" required data-review-target="reviewCrimeType">
+                                    <select name="crime_type" class="form-select" required>
                                         <option value="">Select crime type</option>
-                                        <?php foreach (["Theft","Assault","Accident","Cyber Crime","Vandalism","Other"] as $option) {
-                                            $selected = ($form["crime_type"] === $option) ? "selected" : "";
-                                            echo '<option value="' . h($option) . '" ' . $selected . '>' . h($option) . '</option>';
-                                        } ?>
+                                        <?php foreach (["Theft","Assault","Accident","Cyber Crime","Vandalism","Other"] as $option) { ?>
+                                            <option value="<?php echo h($option); ?>" <?php echo ($form["crime_type"] === $option) ? "selected" : ""; ?>><?php echo h($option); ?></option>
+                                        <?php } ?>
                                     </select>
                                     <div class="invalid-feedback">Select the type of incident.</div>
                                 </div>
@@ -264,7 +273,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                                 </div>
                                 <div class="col-12">
                                     <label class="form-label">Description</label>
-                                    <textarea name="description" class="form-control" rows="8" required data-review-target="reviewDescription"><?php echo h($form["description"]); ?></textarea>
+                                    <textarea name="description" class="form-control" rows="8" required><?php echo h($form["description"]); ?></textarea>
                                     <div class="invalid-feedback">Describe the incident clearly.</div>
                                 </div>
                             </div>
@@ -273,11 +282,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     <div class="col-lg-5">
                         <div class="wizard-side-panel h-100">
                             <div class="wizard-side-icon"><i class="fa-solid fa-file-shield"></i></div>
-                            <h5 class="mb-3">What makes a strong report</h5>
+                            <h5 class="mb-3">Evidence guidance</h5>
                             <ul class="wizard-hint-list">
                                 <li>Pick the closest matching crime type.</li>
-                                <li>Describe what happened, when it happened, and who was involved.</li>
-                                <li>Attach evidence only if it is safe and relevant.</li>
+                                <li>Explain what happened as clearly as possible.</li>
+                                <li>Upload evidence only when it is relevant and safe.</li>
                             </ul>
                             <div class="surface-card p-3 mt-4">
                                 <div class="small text-uppercase fw-semibold text-primary mb-2">Current Evidence</div>
@@ -286,17 +295,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         </div>
                     </div>
                 </div>
-                <div class="wizard-nav mt-4">
-                    <button type="button" class="btn btn-outline-primary wizard-prev">Previous</button>
-                    <button type="button" class="btn btn-primary wizard-next">Next</button>
+                <div class="step-actions">
+                    <button type="button" class="btn btn-outline-primary prevBtn">Previous</button>
+                    <button type="button" class="btn btn-primary nextBtn">Next</button>
                 </div>
             </div>
 
-            <div class="wizard-step" data-step="3">
+            <div class="step" id="step3">
                 <div class="row g-4">
                     <div class="col-xl-8">
-                        <div class="form-card wizard-panel h-100">
-                            <h4 class="mb-3">Step 3: Location Selection</h4>
+                        <div class="step-shell h-100">
+                            <h4 class="mb-3">Step 3: Location</h4>
                             <div class="map-shell mb-3">
                                 <div class="map-search-bar">
                                     <input type="text" id="locationSearch" class="form-control map-search-input" placeholder="Search location...">
@@ -306,35 +315,35 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                                 <div id="mapSearchFeedback" class="small muted mb-3">Search a police station, area, or landmark to move the map instantly.</div>
                                 <div class="map-frame"><div id="map"></div></div>
                             </div>
-                            <input type="hidden" name="latitude" id="latitude" value="<?php echo h($form["latitude"]); ?>" required>
-                            <input type="hidden" name="longitude" id="longitude" value="<?php echo h($form["longitude"]); ?>" required>
-                            <input type="hidden" name="address" id="address" value="<?php echo h($form["address"]); ?>" <?php echo $has_address ? "required" : ""; ?>>
+                            <input type="hidden" name="latitude" id="latitude" value="<?php echo h($form["latitude"]); ?>">
+                            <input type="hidden" name="longitude" id="longitude" value="<?php echo h($form["longitude"]); ?>">
+                            <input type="hidden" name="address" id="address" value="<?php echo h($form["address"]); ?>">
                             <div id="locationValidation" class="invalid-feedback d-block" hidden>Select the incident location on the map before continuing.</div>
                         </div>
                     </div>
                     <div class="col-xl-4">
                         <div class="wizard-side-panel h-100">
                             <div class="wizard-side-icon"><i class="fa-solid fa-location-dot"></i></div>
-                            <h5 class="mb-3">Captured location details</h5>
+                            <h5 class="mb-3">Selected location</h5>
                             <div class="row g-3">
-                                <div class="col-12"><div class="surface-card p-3 h-100"><div class="small text-uppercase fw-semibold text-primary mb-2">Latitude</div><div id="displayLat" class="fw-semibold" data-review-target="reviewLatitude"><?php echo $form["latitude"] !== "" ? h($form["latitude"]) : "Not selected"; ?></div></div></div>
-                                <div class="col-12"><div class="surface-card p-3 h-100"><div class="small text-uppercase fw-semibold text-primary mb-2">Longitude</div><div id="displayLng" class="fw-semibold" data-review-target="reviewLongitude"><?php echo $form["longitude"] !== "" ? h($form["longitude"]) : "Not selected"; ?></div></div></div>
-                                <div class="col-12"><div class="surface-card p-3"><div class="small text-uppercase fw-semibold text-primary mb-2">Incident Address</div><div id="displayAddress" class="muted" data-review-target="reviewIncidentAddress"><?php echo $form["address"] !== "" ? h($form["address"]) : "Not selected"; ?></div></div></div>
+                                <div class="col-12"><div class="surface-card p-3 h-100"><div class="small text-uppercase fw-semibold text-primary mb-2">Latitude</div><div id="displayLat" class="fw-semibold"><?php echo $form["latitude"] !== "" ? h($form["latitude"]) : "Not selected"; ?></div></div></div>
+                                <div class="col-12"><div class="surface-card p-3 h-100"><div class="small text-uppercase fw-semibold text-primary mb-2">Longitude</div><div id="displayLng" class="fw-semibold"><?php echo $form["longitude"] !== "" ? h($form["longitude"]) : "Not selected"; ?></div></div></div>
+                                <div class="col-12"><div class="surface-card p-3"><div class="small text-uppercase fw-semibold text-primary mb-2">Incident Address</div><div id="displayAddress" class="muted"><?php echo $form["address"] !== "" ? h($form["address"]) : "Not selected"; ?></div></div></div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="wizard-nav mt-4">
-                    <button type="button" class="btn btn-outline-primary wizard-prev">Previous</button>
-                    <button type="button" class="btn btn-primary wizard-next">Next</button>
+                <div class="step-actions">
+                    <button type="button" class="btn btn-outline-primary prevBtn">Previous</button>
+                    <button type="button" class="btn btn-primary nextBtn">Next</button>
                 </div>
             </div>
 
-            <div class="wizard-step" data-step="4">
+            <div class="step" id="step4">
                 <div class="row g-4">
                     <div class="col-lg-8">
-                        <div class="form-card wizard-panel h-100">
-                            <h4 class="mb-3">Step 4: Review & Submit</h4>
+                        <div class="step-shell h-100">
+                            <h4 class="mb-3">Step 4: Review &amp; Submit</h4>
                             <div class="review-grid">
                                 <div class="review-card"><div class="review-label">Full Name</div><div id="reviewFullName" class="review-value"><?php echo h($form["full_name"]); ?></div></div>
                                 <div class="review-card"><div class="review-label">Age</div><div id="reviewAge" class="review-value"><?php echo h($form["age"]); ?></div></div>
@@ -363,9 +372,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         </div>
                     </div>
                 </div>
-                <div class="wizard-nav mt-4">
-                    <button type="button" class="btn btn-outline-primary wizard-prev">Previous</button>
-                    <button type="submit" class="btn btn-primary" id="finalSubmitBtn" disabled><?php echo $is_edit_mode ? "Update Complaint" : "Submit Complaint"; ?></button>
+                <div class="step-actions">
+                    <button type="button" class="btn btn-outline-primary prevBtn">Previous</button>
+                    <button type="submit" class="btn btn-primary" id="finalSubmitBtn"><?php echo $is_edit_mode ? "Update Complaint" : "Submit Complaint"; ?></button>
                 </div>
             </div>
         </section>
@@ -375,244 +384,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="../assets/js/app.js"></script>
-<script src="../assets/js/multistep.js"></script>
 <script src="../chatbot/chatbot.js"></script>
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-    const form = document.getElementById("complaintWizardForm");
-    const latInput = document.getElementById("latitude");
-    const lngInput = document.getElementById("longitude");
-    const addressInput = document.getElementById("address");
-    const latDisplay = document.getElementById("displayLat");
-    const lngDisplay = document.getElementById("displayLng");
-    const addressDisplay = document.getElementById("displayAddress");
-    const searchInput = document.getElementById("locationSearch");
-    const searchBtn = document.getElementById("searchLocationBtn");
-    const searchLoading = document.getElementById("mapSearchLoading");
-    const searchFeedback = document.getElementById("mapSearchFeedback");
-    const nameInput = form.querySelector('input[name="full_name"]');
-    const ageInput = form.querySelector('input[name="age"]');
-    const nationalityInput = form.querySelector('input[name="nationality"]');
-    const phoneInput = form.querySelector('input[name="phone_number"]');
-    const evidenceInput = document.getElementById("evidenceInput");
-    const evidenceFileName = document.getElementById("evidenceFileName");
-    const reviewEvidence = document.getElementById("reviewEvidence");
-    const locationValidation = document.getElementById("locationValidation");
-
-    function setSearchState(isLoading, message) {
-        searchLoading.hidden = !isLoading;
-        searchBtn.disabled = isLoading;
-        if (message) searchFeedback.textContent = message;
-    }
-
-    function updateReviewField(id, value) {
-        const target = document.getElementById(id);
-        if (target) target.textContent = value || "Not provided";
-    }
-
-    function updateCoordinates(lat, lng) {
-        latInput.value = lat;
-        lngInput.value = lng;
-        latDisplay.textContent = Number(lat).toFixed(6);
-        lngDisplay.textContent = Number(lng).toFixed(6);
-        updateReviewField("reviewLatitude", Number(lat).toFixed(6));
-        updateReviewField("reviewLongitude", Number(lng).toFixed(6));
-        locationValidation.hidden = true;
-    }
-
-    function updateAddress(lat, lng) {
-        setSearchState(true, "Resolving selected address...");
-        return fetch("https://nominatim.openstreetmap.org/reverse?format=json&lat=" + lat + "&lon=" + lng)
-            .then(function (response) { return response.json(); })
-            .then(function (data) {
-                const address = data && data.display_name ? data.display_name : "Address not found";
-                addressDisplay.textContent = address;
-                addressInput.value = address;
-                updateReviewField("reviewIncidentAddress", address);
-                setSearchState(false, "Address updated from the selected map position.");
-            })
-            .catch(function () {
-                addressDisplay.textContent = "Unable to fetch address";
-                addressInput.value = "Unable to fetch address";
-                updateReviewField("reviewIncidentAddress", "Unable to fetch address");
-                setSearchState(false, "Address lookup failed. You can still submit the selected coordinates.");
-            });
-    }
-
-    const existingLat = parseFloat(latInput.value);
-    const existingLng = parseFloat(lngInput.value);
-    const map = L.map("map").setView((!Number.isNaN(existingLat) && !Number.isNaN(existingLng)) ? [existingLat, existingLng] : [17.385, 78.4867], (!Number.isNaN(existingLat) && !Number.isNaN(existingLng)) ? 15 : 13);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap contributors" }).addTo(map);
-
-    let marker;
-
-    function setMarker(lat, lng, fetchAddress) {
-        if (!marker) {
-            marker = L.marker([lat, lng], { draggable: true }).addTo(map);
-            marker.on("dragend", function () {
-                const pos = marker.getLatLng();
-                updateCoordinates(pos.lat, pos.lng);
-                updateAddress(pos.lat, pos.lng);
-            });
-        } else {
-            marker.setLatLng([lat, lng]);
-        }
-        updateCoordinates(lat, lng);
-        if (fetchAddress) updateAddress(lat, lng);
-    }
-
-    function searchLocation() {
-        const query = searchInput.value.trim();
-        if (!query) {
-            setSearchState(false, "Enter a location name or address to search.");
-            return;
-        }
-        setSearchState(true, "Searching OpenStreetMap for the entered location...");
-        fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(query))
-            .then(function (response) { return response.json(); })
-            .then(function (results) {
-                if (!results || !results.length) {
-                    setSearchState(false, "No location found. Try a more specific landmark or area.");
-                    return;
-                }
-                const result = results[0];
-                const lat = parseFloat(result.lat);
-                const lng = parseFloat(result.lon);
-                map.setView([lat, lng], 16);
-                setMarker(lat, lng, false);
-                addressDisplay.textContent = result.display_name || "Address found";
-                addressInput.value = result.display_name || "";
-                updateReviewField("reviewIncidentAddress", result.display_name || "Address found");
-                setSearchState(false, "Location found. You can drag the marker to refine the exact point.");
-            })
-            .catch(function () {
-                setSearchState(false, "Search failed. Check your connection and try again.");
-            });
-    }
-
-    function validateName() {
-        const valid = /^[A-Za-z][A-Za-z\s.'-]*$/.test(nameInput.value.trim());
-        nameInput.setCustomValidity(valid ? "" : "Full name must contain letters only.");
-    }
-
-    function validateAge() {
-        const valid = ageInput.value !== "" && Number(ageInput.value) >= 18;
-        ageInput.setCustomValidity(valid ? "" : "Age must be 18 or above.");
-    }
-
-    function validateNationality() {
-        const valid = nationalityInput.value.trim().toLowerCase() === "indian";
-        nationalityInput.setCustomValidity(valid ? "" : "Nationality must be Indian.");
-    }
-
-    function validatePhone() {
-        phoneInput.value = phoneInput.value.replace(/\D/g, "").slice(0, 10);
-        const valid = /^\d{10}$/.test(phoneInput.value);
-        phoneInput.setCustomValidity(valid ? "" : "Phone number must contain exactly 10 digits.");
-    }
-
-    function validateLocationStep() {
-        const hasCoordinates = latInput.value !== "" && lngInput.value !== "" && !Number.isNaN(parseFloat(latInput.value)) && !Number.isNaN(parseFloat(lngInput.value));
-        const hasAddress = <?php echo $has_address ? "addressInput.value.trim() !== \"\"" : "true"; ?>;
-        locationValidation.hidden = hasCoordinates && hasAddress;
-        return hasCoordinates && hasAddress;
-    }
-
-    searchBtn.addEventListener("click", searchLocation);
-    searchInput.addEventListener("keydown", function (event) {
-        if (event.key === "Enter") {
-            event.preventDefault();
-            searchLocation();
-        }
-    });
-
-    if (!Number.isNaN(existingLat) && !Number.isNaN(existingLng)) {
-        setMarker(existingLat, existingLng, addressInput.value === "");
-    } else if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function (position) {
-            map.setView([position.coords.latitude, position.coords.longitude], 15);
-            setMarker(position.coords.latitude, position.coords.longitude, true);
-        });
-    }
-
-    map.on("click", function (event) {
-        setMarker(event.latlng.lat, event.latlng.lng, true);
-        setSearchState(false, "Map point selected. Drag the marker if you need to fine-tune the location.");
-    });
-
-    nameInput.addEventListener("input", validateName);
-    ageInput.addEventListener("input", validateAge);
-    nationalityInput.addEventListener("input", validateNationality);
-    phoneInput.addEventListener("input", validatePhone);
-    evidenceInput.addEventListener("change", function () {
-        const fileName = evidenceInput.files && evidenceInput.files[0] ? evidenceInput.files[0].name : "<?php echo !empty($existing_complaint["evidence"]) ? h($existing_complaint["evidence"]) : "No new file selected"; ?>";
-        evidenceFileName.textContent = fileName || "No new file selected";
-        reviewEvidence.textContent = fileName || "No file selected";
-    });
-
-    form.querySelectorAll("[data-review-target]").forEach(function (field) {
-        const targetId = field.getAttribute("data-review-target");
-        const sync = function () {
-            updateReviewField(targetId, field.value ? field.value.trim() : field.textContent.trim());
-        };
-        field.addEventListener("input", sync);
-        field.addEventListener("change", sync);
-        sync();
-    });
-
-    validateName();
-    validateAge();
-    validateNationality();
-    validatePhone();
-    updateReviewField("reviewEvidence", "<?php echo !empty($existing_complaint["evidence"]) ? h($existing_complaint["evidence"]) : "No file selected"; ?>");
-    updateReviewField("reviewIncidentAddress", addressInput.value || "Not selected");
-
-    window.initComplaintWizard({
-        formSelector: "#complaintWizardForm",
-        progressSelector: ".complaint-progress",
-        stepSelector: ".wizard-step",
-        nextSelector: ".wizard-next",
-        prevSelector: ".wizard-prev",
-        submitSelector: "#finalSubmitBtn",
-        onStepValidate: function (stepNumber, activeStep) {
-            let valid = true;
-            if (stepNumber === 3) valid = validateLocationStep();
-            activeStep.querySelectorAll("input, select, textarea").forEach(function (field) {
-                if (field.type === "hidden") return;
-                if (!field.checkValidity()) {
-                    field.classList.add("is-invalid");
-                    valid = false;
-                } else {
-                    field.classList.remove("is-invalid");
-                }
-            });
-            form.classList.toggle("was-validated", !valid);
-            return valid;
-        },
-        onBeforeSubmit: function () {
-            validateName();
-            validateAge();
-            validateNationality();
-            validatePhone();
-            const personalStep = form.querySelector('.wizard-step[data-step="1"]');
-            const crimeStep = form.querySelector('.wizard-step[data-step="2"]');
-            const locationStep = form.querySelector('.wizard-step[data-step="3"]');
-            if (!this.validateStep(personalStep, 1)) {
-                this.goToStep(1);
-                return false;
-            }
-            if (!this.validateStep(crimeStep, 2)) {
-                this.goToStep(2);
-                return false;
-            }
-            if (!this.validateStep(locationStep, 3)) {
-                this.goToStep(3);
-                return false;
-            }
-            return true;
-        }
-    });
-});
-</script>
+<script src="../assets/js/report-form.js"></script>
 </body>
 </html>
