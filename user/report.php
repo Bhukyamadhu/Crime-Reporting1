@@ -234,7 +234,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     <div class="col-lg-5">
                         <div class="wizard-side-panel h-100">
                             <div class="wizard-side-icon"><i class="fa-solid fa-id-card"></i></div>
-                            <h5 class="mb-3">Validation rules</h5>
+                            <h5 class="mb-3">Rules</h5>
                             <ul class="wizard-hint-list">
                                 <li>Name must contain letters only.</li>
                                 <li>Age must be at least 18 years.</li>
@@ -388,3 +388,4 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <script src="../assets/js/report-form.js"></script>
 </body>
 </html>
+x

@@ -11,6 +11,7 @@ if (isset($_SESSION["admin_id"])) {
 
 $message = "";
 $flash = get_flash_message();
+$translate_js_version = (string)filemtime(__DIR__ . "/../assets/js/google-translate-switcher.js");
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     csrf_verify_or_die();
@@ -22,39 +23,34 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     } else {
         $admin = null;
         if (db_table_exists($conn, "admins")) {
-            db_ensure_default_admin_account($conn);
+            $has_email = db_has_column($conn, "admins", "email");
+            $has_name = db_has_column($conn, "admins", "name");
+            $has_username = db_has_column($conn, "admins", "username");
 
-            $sql = "SELECT id, username, name, email, password,
-                           COALESCE(NULLIF(name, ''), NULLIF(username, ''), NULLIF(email, ''), 'Admin') AS display_name
-                    FROM admins
-                    WHERE email=? OR username=?
-                    LIMIT 1";
+            $display_col = $has_name ? "name" : ($has_username ? "username" : "id");
+            $identity_col = $has_email ? "email" : ($has_username ? "username" : "id");
+
+            $sql = "SELECT id, {$display_col} AS display_name, password FROM admins WHERE {$identity_col}=? LIMIT 1";
             $stmt = mysqli_prepare($conn, $sql);
-            if ($stmt) {
-                mysqli_stmt_bind_param($stmt, "ss", $identity, $identity);
-                mysqli_stmt_execute($stmt);
-                $result = mysqli_stmt_get_result($stmt);
-                if ($result && mysqli_num_rows($result) === 1) {
-                    $admin = mysqli_fetch_assoc($result);
-                }
+            mysqli_stmt_bind_param($stmt, "s", $identity);
+            mysqli_stmt_execute($stmt);
+            $result = mysqli_stmt_get_result($stmt);
+            if ($result && mysqli_num_rows($result) === 1) {
+                $admin = mysqli_fetch_assoc($result);
             }
         }
 
-        $password_ok = false;
-        if ($admin) {
-            $stored_password = (string)($admin["password"] ?? "");
-            if ($stored_password !== "" && password_verify($password, $stored_password)) {
-                $password_ok = true;
-                if (password_needs_rehash($stored_password, PASSWORD_DEFAULT)) {
-                    db_update_admin_password($conn, (int)$admin["id"], password_hash($password, PASSWORD_DEFAULT));
-                }
-            } elseif ($stored_password !== "" && hash_equals($stored_password, $password)) {
-                $password_ok = true;
-                db_update_admin_password($conn, (int)$admin["id"], password_hash($password, PASSWORD_DEFAULT));
-            }
+        // First-time fallback
+        if (!$admin && $identity === "admin@crime.local" && $password === "Admin@123") {
+            $_SESSION["admin_id"] = 0;
+            $_SESSION["admin_name"] = "System Admin";
+            session_regenerate_once();
+            security_touch_session();
+            header("Location: dashboard.php");
+            exit();
         }
 
-        if ($admin && $password_ok) {
+        if ($admin && password_verify($password, $admin["password"])) {
             $_SESSION["admin_id"] = (int)$admin["id"];
             $_SESSION["admin_name"] = (string)$admin["display_name"];
             session_regenerate_once();
@@ -76,15 +72,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Admin Login</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="../assets/css/app.css">
 </head>
-<body class="bg-light">
-<div class="container py-5">
+<body>
+<div class="top-alert-strip">
+    <strong>Emergency?</strong> Call 100 or 112 immediately. This portal is for non-emergency reporting only.
+</div>
+<main class="container py-5">
     <div class="row justify-content-center">
         <div class="col-md-5">
-            <div class="card shadow-sm border-0">
-                <div class="card-body p-4">
-                    <h3 class="mb-4 text-center"><i class="bi bi-shield-lock me-2"></i>Admin Login</h3>
+            <div class="surface-card p-4 p-lg-5">
+                    <p class="text-uppercase small fw-semibold text-primary mb-2 text-center">Admin Access</p>
+                    <h1 class="section-title mb-3 text-center"><i class="fa-solid fa-shield-halved me-2"></i>Admin Login</h1>
+                    <p class="section-copy text-center mx-auto mb-4">Sign in to manage complaints, update statuses, and monitor the reporting system.</p>
 
                     <?php if ($message !== "") { ?>
                         <div class="alert alert-danger"><?php echo h($message); ?></div>
@@ -103,15 +104,23 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                             <label class="form-label">Password</label>
                             <input type="password" name="password" class="form-control" required>
                         </div>
-                        <button class="btn btn-primary w-100" type="submit">Login</button>
+                        <button class="btn btn-primary w-100" type="submit"><i class="fa-solid fa-right-to-bracket me-2"></i>Login</button>
                     </form>
                     <p class="small text-muted mt-3 mb-0">
                         Default fallback: <code>admin@crime.local</code> / <code>Admin@123</code>
                     </p>
-                </div>
             </div>
         </div>
     </div>
-</div>
+</main>
+<?php
+$footer_base_path = "..";
+$footer_variant = "admin";
+include("../includes/footer.php");
+?>
+<div id="google_translate_element" class="visually-hidden" aria-hidden="true"></div>
+<script src="../assets/js/app.js"></script>
+<script src="../assets/js/google-translate-switcher.js?v=<?php echo h($translate_js_version); ?>"></script>
+<script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </body>
 </html>
