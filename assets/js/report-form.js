@@ -1,11 +1,7 @@
-console.log("JS STARTED");
-
 document.addEventListener("DOMContentLoaded", function () {
-    console.log("DOM READY");
 
     try {
         const btn = document.getElementById("nextBtn");
-        console.log("Button found:", btn);
 
         if (!btn) {
             console.error("Button NOT FOUND");
@@ -93,12 +89,6 @@ document.addEventListener("DOMContentLoaded", function () {
         document.querySelectorAll(".nextBtn").forEach(btn => {
             btn.addEventListener("click", function (e) {
                 e.preventDefault();
-                console.log("NEXT CLICKED");
-
-                if (btn.id === "nextBtn") {
-                    console.log("CLICK WORKING");
-                    alert("Next button works now");
-                }
 
                 if (currentStep < steps.length - 1) {
                     currentStep++;

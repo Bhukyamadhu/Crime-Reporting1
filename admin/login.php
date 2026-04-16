@@ -22,34 +22,39 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     } else {
         $admin = null;
         if (db_table_exists($conn, "admins")) {
-            $has_email = db_has_column($conn, "admins", "email");
-            $has_name = db_has_column($conn, "admins", "name");
-            $has_username = db_has_column($conn, "admins", "username");
+            db_ensure_default_admin_account($conn);
 
-            $display_col = $has_name ? "name" : ($has_username ? "username" : "id");
-            $identity_col = $has_email ? "email" : ($has_username ? "username" : "id");
-
-            $sql = "SELECT id, {$display_col} AS display_name, password FROM admins WHERE {$identity_col}=? LIMIT 1";
+            $sql = "SELECT id, username, name, email, password,
+                           COALESCE(NULLIF(name, ''), NULLIF(username, ''), NULLIF(email, ''), 'Admin') AS display_name
+                    FROM admins
+                    WHERE email=? OR username=?
+                    LIMIT 1";
             $stmt = mysqli_prepare($conn, $sql);
-            mysqli_stmt_bind_param($stmt, "s", $identity);
-            mysqli_stmt_execute($stmt);
-            $result = mysqli_stmt_get_result($stmt);
-            if ($result && mysqli_num_rows($result) === 1) {
-                $admin = mysqli_fetch_assoc($result);
+            if ($stmt) {
+                mysqli_stmt_bind_param($stmt, "ss", $identity, $identity);
+                mysqli_stmt_execute($stmt);
+                $result = mysqli_stmt_get_result($stmt);
+                if ($result && mysqli_num_rows($result) === 1) {
+                    $admin = mysqli_fetch_assoc($result);
+                }
             }
         }
 
-        // First-time fallback
-        if (!$admin && $identity === "admin@crime.local" && $password === "Admin@123") {
-            $_SESSION["admin_id"] = 0;
-            $_SESSION["admin_name"] = "System Admin";
-            session_regenerate_once();
-            security_touch_session();
-            header("Location: dashboard.php");
-            exit();
+        $password_ok = false;
+        if ($admin) {
+            $stored_password = (string)($admin["password"] ?? "");
+            if ($stored_password !== "" && password_verify($password, $stored_password)) {
+                $password_ok = true;
+                if (password_needs_rehash($stored_password, PASSWORD_DEFAULT)) {
+                    db_update_admin_password($conn, (int)$admin["id"], password_hash($password, PASSWORD_DEFAULT));
+                }
+            } elseif ($stored_password !== "" && hash_equals($stored_password, $password)) {
+                $password_ok = true;
+                db_update_admin_password($conn, (int)$admin["id"], password_hash($password, PASSWORD_DEFAULT));
+            }
         }
 
-        if ($admin && password_verify($password, $admin["password"])) {
+        if ($admin && $password_ok) {
             $_SESSION["admin_id"] = (int)$admin["id"];
             $_SESSION["admin_name"] = (string)$admin["display_name"];
             session_regenerate_once();
